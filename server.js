@@ -23,44 +23,77 @@ const auth = new google.auth.GoogleAuth({
 const sheets = google.sheets({ version: 'v4', auth });
 const SHEET_ID = process.env.SHEET_ID;
 
-// ============ የFayda QR Parser ============
+// ============ የFayda QR Parser (የተሻሻለ) ============
 function parseFaydaQR(raw) {
   if (!raw || typeof raw !== 'string') return null;
 
-  // 1. JSON ሞክር
+  console.log('🔍 Parsing QR, length:', raw.length);
+  console.log('📋 Raw (first 200):', raw.substring(0, 200));
+
+  // 1. ቀጥታ JSON ሞክር
   try {
     const data = JSON.parse(raw);
     if (data && typeof data === 'object') {
       return {
-        fan: data.fan || data.FAN || data.faydaId || data.id || null,
+        fan: data.fan || data.FAN || data.faydaId || data.fayda_id || data.id || null,
         fin: data.fin || data.FIN || null,
-        name: data.name || data.fullName || data.full_name || null,
-        birthdate: data.dob || data.birthdate || data.dateOfBirth || null,
+        name: data.name || data.fullName || data.full_name || data.firstName || null,
+        birthdate: data.dob || data.birthdate || data.dateOfBirth || data.date_of_birth || null,
         gender: data.gender || data.sex || null,
         raw: data,
       };
     }
-  } catch {}
+  } catch (e) {}
 
-  // 2. Base64 ሞክር
+  // 2. Base64 decode ሞክር
   try {
     const decoded = Buffer.from(raw, 'base64').toString('utf-8');
-    const data = JSON.parse(decoded);
-    return {
-      fan: data.fan || data.FAN || null,
-      fin: data.fin || data.FIN || null,
-      name: data.name || data.fullName || null,
-      birthdate: data.dob || data.birthdate || null,
-      gender: data.gender || null,
-      raw: data,
-    };
-  } catch {}
+    console.log('📦 Base64 decoded (first 200):', decoded.substring(0, 200));
 
-  // 3. Separators
-  const separators = ['|', ',', ';', '\t'];
+    // Base64 የተቀየረ JSON ከሆነ
+    try {
+      const data = JSON.parse(decoded);
+      if (data && typeof data === 'object') {
+        return {
+          fan: data.fan || data.FAN || data.faydaId || null,
+          fin: data.fin || data.FIN || null,
+          name: data.name || data.fullName || null,
+          birthdate: data.dob || data.birthdate || null,
+          gender: data.gender || null,
+          raw: data,
+        };
+      }
+    } catch (e) {}
+
+    // Base64 የተቀየረ ጽሑፍ ከሆነ
+    if (decoded.includes('|') || decoded.includes(',') || decoded.includes(';')) {
+      const parts = decoded.split(/[|,;\t\n]/).map(s => s.trim()).filter(s => s);
+      if (parts.length >= 2) {
+        return {
+          fan: parts[0], fin: parts[1] || null, name: parts[2] || null,
+          birthdate: parts[3] || null, gender: parts[4] || null, raw: parts,
+        };
+      }
+    }
+  } catch (e) {}
+
+  // 3. URL ውስጥ FAN/FIN ይፈልግ
+  try {
+    if (raw.startsWith('http')) {
+      const url = new URL(raw);
+      const fan = url.searchParams.get('fan') || url.searchParams.get('FAN');
+      const fin = url.searchParams.get('fin') || url.searchParams.get('FIN');
+      if (fan || fin) {
+        return { fan, fin, name: null, birthdate: null, gender: null, raw };
+      }
+    }
+  } catch (e) {}
+
+  // 4. Delimiters ሞክር
+  const separators = ['|', ',', ';', '\t', '\n'];
   for (const sep of separators) {
     if (raw.includes(sep)) {
-      const parts = raw.split(sep).map(s => s.trim());
+      const parts = raw.split(sep).map(s => s.trim()).filter(s => s);
       if (parts.length >= 2) {
         return {
           fan: parts[0], fin: parts[1] || null, name: parts[2] || null,
@@ -70,6 +103,12 @@ function parseFaydaQR(raw) {
     }
   }
 
+  // 5. ሙሉ ጽሑፉ ቁጥር ከሆነ — FAN አድርገው
+  if (/^\d{8,}$/.test(raw.trim())) {
+    return { fan: raw.trim(), fin: null, name: null, birthdate: null, gender: null, raw };
+  }
+
+  // 6. Fallback — ሙሉ ጽሑፉን FAN አድርገው
   return { fan: raw.trim(), fin: null, name: null, birthdate: null, gender: null, raw };
 }
 
@@ -78,18 +117,17 @@ function getMealType() {
   const now = new Date();
   const hours = now.getUTCHours();
   const minutes = now.getUTCMinutes();
-  const total = hours * 60 + minutes;  // ጠቅላላ ደቂቃ
+  const total = hours * 60 + minutes;
 
-  // 4:30–6:00 UTC → breakfast
   if (total >= 4 * 60 + 30 && total < 6 * 60) return 'breakfast';
-
-  // 9:00–10:30 UTC → lunch
   if (total >= 9 * 60 && total < 10 * 60 + 30) return 'lunch';
-
-  // 14:00–17:00 UTC → dinner
   if (total >= 14 * 60 && total < 17 * 60) return 'dinner';
 
   return 'off-hours';
+}
+
+function todayStr() {
+  return new Date().toISOString().split('T')[0];
 }
 
 // ============ የተማሪ/ሰራተኛ ፍለጋ (በሦስቱም ሉሆች) ============
@@ -122,7 +160,6 @@ async function findStudent(fan, fin) {
         }
       }
     } catch (e) {
-      // ሉሁ ከሌለ ችላ በል
       console.warn(`Sheet ${sheetName} not found:`, e.message);
     }
   }
@@ -312,46 +349,13 @@ app.post('/api/register', async (req, res) => {
 
     if (type === 'staff') {
       sheetName = 'StaffRegistry';
-      // FAN | FIN | ስም | ሚና | ክፍል | ስልክ | ሁኔታ | ቀን
-      row = [
-        fan || '',
-        fin || '',
-        name || '',
-        'staff',
-        department || '',
-        '',
-        'active',
-        timestamp,
-      ];
+      row = [fan || '', fin || '', name || '', 'staff', department || '', '', 'active', timestamp];
     } else if (type === 'noncafe') {
       sheetName = 'NonCafeRegistry';
-      // FAN | FIN | ስም | የትውልድ ቀን | ኮሌጅ | ዲፓርትመንት | ዓመት | ሁኔታ | ቀን
-      row = [
-        fan || '',
-        fin || '',
-        name || '',
-        birthdate || '',
-        college || '',
-        department || '',
-        year || '',
-        'active',
-        timestamp,
-      ];
+      row = [fan || '', fin || '', name || '', birthdate || '', college || '', department || '', year || '', 'active', timestamp];
     } else if (type === 'cafe') {
       sheetName = 'CafeRegistry';
-      // FAN | FIN | ስም | የትውልድ ቀን | ኮሌጅ | ዲፓርትመንት | ዓመት | ሁኔታ | የካፌቴሪያ ፈቃድ | ቀን
-      row = [
-        fan || '',
-        fin || '',
-        name || '',
-        birthdate || '',
-        college || '',
-        department || '',
-        year || '',
-        'active',
-        'approved',
-        timestamp,
-      ];
+      row = [fan || '', fin || '', name || '', birthdate || '', college || '', department || '', year || '', 'active', 'approved', timestamp];
     }
 
     await sheets.spreadsheets.values.append({
@@ -386,7 +390,7 @@ app.post('/api/verify', async (req, res) => {
       });
     }
 
-    // የካፌቴሪያ ሁነታ — ከCafeRegistry ብቻ ይፈልጋል
+    // ============ የካፌቴሪያ ሁነታ ============
     if (mode === 'cafeteria') {
       const student = await findStudentInCafe(parsed.fan, parsed.fin);
 
@@ -436,7 +440,7 @@ app.post('/api/verify', async (req, res) => {
       });
     }
 
-    // የበር ሁነታ — በሦስቱም ሉሆች ይፈልጋል
+    // ============ የበር ሁነታ ============
     const student = await findStudent(parsed.fan, parsed.fin);
 
     if (!student) {
@@ -492,8 +496,7 @@ app.get('/api/stats', async (req, res) => {
       }
     };
 
-    const [students, staff, noncafe, cafe, meals, gates] = await Promise.all([
-      safeGet('Students!A:H'),
+    const [staff, noncafe, cafe, meals, gates] = await Promise.all([
       safeGet('StaffRegistry!A:H'),
       safeGet('NonCafeRegistry!A:I'),
       safeGet('CafeRegistry!A:J'),
