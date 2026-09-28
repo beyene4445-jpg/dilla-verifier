@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="am">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>Admin · Dilla Verifier</title>
+  <meta name="theme-color" content="#020617" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/css/app.css" />
+</head>
+<body data-title-key="admin.title">
+  <div id="langSwitcher"></div>
+
+  <div class="container">
+    <div class="header">
+      <h1 data-i18n="admin.title">📊 የአስተዳዳሪ ዳሽቦርድ</h1>
+      <p data-i18n="admin.subtitle">ዲላ ዩኒቨርሲቲ · የምግብ እና የበር ስታቲስቲክስ</p>
+    </div>
+
+    <div class="card" id="loginCard">
+      <label style="display:block; margin-bottom: 8px; font-size: 13px; color: var(--text-2);" data-i18n="admin.key">የAdmin ቁልፍ</label>
+      <input class="input" type="password" id="adminKey" data-i18n-placeholder="admin.key" />
+      <button class="btn btn-primary btn-block" style="margin-top: 12px;" onclick="loadStats()">
+        <span data-i18n="admin.enter">ግባ</span>
+      </button>
+    </div>
+
+    <div id="dashboard" style="display: none;">
+      <div class="stats">
+        <div class="stat"><div class="num" id="s-total">–</div><div class="lbl" data-i18n="admin.totalStudents">ጠቅላላ ተማሪ</div></div>
+        <div class="stat"><div class="num" id="s-active">–</div><div class="lbl" data-i18n="admin.activeStudents">ንቁ ተማሪ</div></div>
+        <div class="stat"><div class="num" id="s-meals">–</div><div class="lbl" data-i18n="admin.todayMeals">የዛሬ ምግብ</div></div>
+        <div class="stat"><div class="num" id="s-rejected">–</div><div class="lbl" data-i18n="admin.rejected">የተከለሉ</div></div>
+      </div>
+
+      <div class="card">
+        <h3 style="margin-bottom: 12px; font-size: 16px;" data-i18n="admin.recentMeals">🕒 የቅርብ ጊዜ ምግቦች</h3>
+        <div style="overflow-x: auto;">
+          <table class="table" id="mealsTable">
+            <thead><tr>
+              <th data-i18n="admin.fan">FAN</th>
+              <th data-i18n="admin.meal">ምግብ</th>
+              <th data-i18n="admin.time">ሰዓት</th>
+            </tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3 style="margin-bottom: 12px; font-size: 16px;" data-i18n="admin.recentGates">🚪 የቅርብ ጊዜ በር እንቅስቃሴ</h3>
+        <div style="overflow-x: auto;">
+          <table class="table" id="gatesTable">
+            <thead><tr>
+              <th data-i18n="register.name">ስም</th>
+              <th data-i18n="admin.result">ውጤት</th>
+              <th data-i18n="admin.gate">በር</th>
+              <th data-i18n="admin.time">ሰዓት</th>
+            </tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+
+      <button class="btn btn-ghost btn-block" onclick="loadStats()">
+        <span data-i18n="admin.refresh">🔄 አድስ</span>
+      </button>
+    </div>
+
+    <p class="hint"><a href="/" style="color: var(--accent);" data-i18n="admin.back">← ተመለስ</a></p>
+  </div>
+
+  <script src="/js/i18n.js"></script>
+  <script>
+    async function loadStats() {
+      const key = document.getElementById('adminKey').value.trim() || localStorage.getItem('adminKey');
+      if (!key) return alert(t('admin.key'));
+      localStorage.setItem('adminKey', key);
+
+      try {
+        const res = await fetch(`/api/stats?key=${encodeURIComponent(key)}`);
+        if (!res.ok) throw new Error('Unauthorized');
+        const d = await res.json();
+
+        document.getElementById('loginCard').style.display = 'none';
+        document.getElementById('dashboard').style.display = 'block';
+
+        document.getElementById('s-total').textContent = d.totalStudents;
+        document.getElementById('s-active').textContent = d.activeStudents;
+        document.getElementById('s-meals').textContent = d.todayMeals;
+        document.getElementById('s-rejected').textContent = d.todayRejected;
+
+        const mealsBody = document.querySelector('#mealsTable tbody');
+        mealsBody.innerHTML = d.recentMeals.length
+          ? d.recentMeals.map(m => `<tr><td>${m.fan}</td><td>${m.meal}</td><td>${new Date(m.time).toLocaleTimeString()}</td></tr>`).join('')
+          : `<tr><td colspan="3" style="color: var(--text-2);">${t('admin.none')}</td></tr>`;
+
+        const gatesBody = document.querySelector('#gatesTable tbody');
+        gatesBody.innerHTML = d.recentGates.length
+          ? d.recentGates.map(g => `
+            <tr>
+              <td>${g.name || g.fan || '—'}</td>
+              <td><span class="badge ${g.result === 'allowed' || g.result === 'meal_ok' ? 'ok' : 'err'}">${g.result}</span></td>
+              <td>${g.gate || '—'}</td>
+              <td>${new Date(g.time).toLocaleTimeString()}</td>
+            </tr>`).join('')
+          : `<tr><td colspan="4" style="color: var(--text-2);">${t('admin.none')}</td></tr>`;
+      } catch (e) {
+        alert(t('register.failed'));
+      }
+    }
+
+    const savedKey = localStorage.getItem('adminKey');
+    if (savedKey) { document.getElementById('adminKey').value = savedKey; loadStats(); }
+  </script>
+</body>
+</html>

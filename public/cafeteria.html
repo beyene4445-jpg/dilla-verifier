@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="am">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>Cafeteria · Dilla Verifier</title>
+  <meta name="theme-color" content="#020617" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/css/app.css" />
+  <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>🍽️ የካፌቴሪያ ማረጋገጫ</h1>
+      <p>የተማሪውን Fayda QR ኮድ ወደ ካሜራው አቅርብ</p>
+    </div>
+
+    <div class="card" style="padding: 12px;">
+      <div id="reader"></div>
+    </div>
+
+    <div id="status" class="status hidden"></div>
+
+    <div style="display: flex; gap: 10px; margin-top: 16px;">
+      <button class="btn btn-ghost btn-block" onclick="window.location.href='/'">← ተመለስ</button>
+      <button class="btn btn-ghost btn-block" id="toggleBtn">⏸ አቁም</button>
+    </div>
+
+    <p class="hint">አንድ ተማሪ ለአንድ ምግብ አንድ ጊዜ ብቻ</p>
+  </div>
+
+  <script type="module">
+    import { api } from '/js/api.js';
+    import { ui } from '/js/ui.js';
+    import { QRScanner } from '/js/scanner.js';
+
+    let processing = false;
+    const scanner = new QRScanner('reader', async (raw) => {
+      if (processing) return;
+      processing = true;
+      await scanner.pause();
+
+      try {
+        const result = await api.verify(raw, 'cafeteria', { location: 'main-cafeteria' });
+
+        if (result.allowed) {
+          const mealLabel = { breakfast: 'ቁርስ', lunch: 'ምሳ', dinner: 'እራት', 'off-hours': 'ምግብ' }[result.mealType] || 'ምግብ';
+          ui.showStatus('ok', '🍽️', 'Get In!', `${mealLabel} · መልካም ምሳ ይሁንልህ`, result.student?.name || '');
+          ui.beep(true);
+          ui.speak('Get in. We wish a good meal to you');
+        } else if (result.reason === 'already_used') {
+          ui.showStatus('warn', '⛔', 'This ID Used Before', 'ለአንድ ምግብ ሁለት ጊዜ አይፈቀድም', result.student?.name || '');
+          ui.beep(false);
+          ui.speak('This ID used before. You cannot eat twice for one meal');
+        } else {
+          const titles = {
+            not_student: ['🚫', 'Not Allowed Here', 'የዲላ ዩኒቨርሲቲ ተማሪ አይደለም'],
+            inactive: ['⚠️', 'Not Active', 'የተማሪው ሁኔታ ንቁ አይደለም'],
+            invalid_qr: ['❓', 'Invalid QR', 'የQR ኮዱ ሊነበብ አልቻለም'],
+            server_error: ['⚠️', 'Server Error', 'እባክህ እንደገና ሞክር'],
+          };
+          const [icon, title, sub] = titles[result.reason] || ['🚫', 'Not Allowed', result.message || ''];
+          ui.showStatus('err', icon, title, sub, result.student?.name || '');
+          ui.beep(false);
+          ui.speak('Not allowed here. Please talk to security guard');
+        }
+      } catch (e) {
+        ui.showStatus('err', '⚠️', 'Network Error', 'ኢንተርኔት አልተገኘም');
+        ui.beep(false);
+      }
+
+      setTimeout(async () => {
+        processing = false;
+        try { await scanner.resume(); } catch {}
+      }, 3000);
+    });
+
+    scanner.start().catch(err => {
+      ui.showStatus('err', '📷', 'Camera Error', 'ካሜራ ሊከፈት አልቻለም — HTTPS ያስፈልጋል');
+      console.error(err);
+    });
+
+    let paused = false;
+    document.getElementById('toggleBtn').addEventListener('click', async (e) => {
+      if (paused) { await scanner.resume(); e.target.textContent = '⏸ አቁም'; }
+      else { await scanner.pause(); e.target.textContent = '▶ ቀጥል'; }
+      paused = !paused;
+    });
+  </script>
+</body>
+</html>

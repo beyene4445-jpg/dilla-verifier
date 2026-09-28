@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="am">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>Gateway · Dilla Verifier</title>
+  <meta name="theme-color" content="#020617" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/css/app.css" />
+  <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+</head>
+<body data-title-key="gateway.title">
+  <div id="langSwitcher"></div>
+
+  <div class="container">
+    <div class="header">
+      <h1 data-i18n="gateway.title">🚪 የበር ማረጋገጫ</h1>
+      <p data-i18n="gateway.subtitle">የተማሪውን Fayda QR ኮድ ወደ ካሜራው አቅርብ</p>
+    </div>
+
+    <div class="card" style="padding: 12px;">
+      <div id="reader"></div>
+    </div>
+
+    <div id="status" class="status hidden"></div>
+
+    <div style="display: flex; gap: 10px; margin-top: 16px;">
+      <button class="btn btn-ghost btn-block" onclick="window.location.href='/'">
+        <span data-i18n="gateway.back">← ተመለስ</span>
+      </button>
+      <button class="btn btn-ghost btn-block" id="toggleBtn">
+        <span data-i18n="gateway.pause">⏸ አቁም</span>
+      </button>
+    </div>
+
+    <p class="hint" data-i18n="gateway.hint">ስካኑ በራስ-ሰር ይሰራል · ድምጽ ማሳወቂያ አለው</p>
+  </div>
+
+  <script src="/js/i18n.js"></script>
+  <script type="module">
+    import { api } from '/js/api.js';
+    import { ui } from '/js/ui.js';
+    import { QRScanner } from '/js/scanner.js';
+
+    let processing = false;
+    const scanner = new QRScanner('reader', async (raw) => {
+      if (processing) return;
+      processing = true;
+      await scanner.pause();
+
+      try {
+        const result = await api.verify(raw, 'gate', { gate: 'main' });
+
+        if (result.allowed) {
+          ui.showStatus('ok', '✅', t('gateway.getIn'), t('gateway.studentVerified'), result.student?.name || '');
+          ui.beep(true);
+          ui.speak('Get in');
+        } else {
+          const titles = {
+            not_student: ['🚫', t('gateway.notAllowed'), t('gateway.talkSecurity')],
+            not_registered: ['🚫', t('gateway.notAllowed'), t('gateway.notRegistered')],
+            inactive: ['⚠️', t('gateway.notActive'), t('gateway.studentInactive')],
+            invalid_qr: ['❓', t('gateway.invalidQR'), t('gateway.couldNotRead')],
+            server_error: ['⚠️', t('gateway.serverError'), t('gateway.tryAgain')],
+          };
+          const [icon, title, sub] = titles[result.reason] || ['🚫', t('gateway.notAllowed'), result.message || ''];
+          ui.showStatus('err', icon, title, sub, result.student?.name || '');
+          ui.beep(false);
+          ui.speak('Not allowed here. Please talk to security guard');
+        }
+      } catch (e) {
+        ui.showStatus('err', '⚠️', t('gateway.networkError'), t('gateway.noInternet'));
+        ui.beep(false);
+      }
+
+      setTimeout(async () => {
+        processing = false;
+        try { await scanner.resume(); } catch {}
+      }, 3000);
+    });
+
+    scanner.start().catch(err => {
+      ui.showStatus('err', '📷', t('gateway.cameraError'), t('gateway.cameraErrorDesc'));
+      console.error(err);
+    });
+
+    let paused = false;
+    const toggleBtn = document.getElementById('toggleBtn');
+    toggleBtn.addEventListener('click', async () => {
+      if (paused) {
+        await scanner.resume();
+        toggleBtn.querySelector('span').textContent = t('gateway.pause');
+      } else {
+        await scanner.pause();
+        toggleBtn.querySelector('span').textContent = t('gateway.resume');
+      }
+      paused = !paused;
+    });
+
+    // Re-apply translations when language changes
+    window.addEventListener('storage', () => {
+      // When language changes, update button text
+      toggleBtn.querySelector('span').textContent = paused ? t('gateway.resume') : t('gateway.pause');
+    });
+  </script>
+</body>
+</html>

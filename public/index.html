@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="am">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>Dilla University Verifier</title>
+  <meta name="theme-color" content="#020617" />
+  <link rel="manifest" href="/manifest.json" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/css/app.css" />
+</head>
+<body data-title-key="app.title">
+  <!-- Language Switcher -->
+  <div id="langSwitcher"></div>
+
+  <div class="container">
+    <div class="header">
+      <h1 data-i18n="app.title">Dilla University</h1>
+      <p data-i18n="app.subtitle">የFayda QR ማረጋገጫ ስርዓት</p>
+    </div>
+
+    <div class="card">
+      <p style="color: var(--text-1); font-size: 14px; line-height: 1.6;" data-i18n="home.welcome">
+        ይህ ስርዓት የተማሪዎችን የFayda QR ኮድ በመቃኘት የዲላ ዩኒቨርሲቲ መሆናቸውን ያረጋግጣል።
+      </p>
+    </div>
+
+    <div class="nav-grid">
+      <a class="nav-card" href="/gateway">
+        <div class="emoji">🚪</div>
+        <div class="label" data-i18n="home.gateway">የበር ማረጋገጫ</div>
+        <div class="desc" data-i18n="home.gateway.desc">በመግቢያ በር ላይ ማረጋገጫ</div>
+      </a>
+      <a class="nav-card" href="/cafeteria">
+        <div class="emoji">🍽️</div>
+        <div class="label" data-i18n="home.cafeteria">የካፌቴሪያ ማረጋገጫ</div>
+        <div class="desc" data-i18n="home.cafeteria.desc">የምግብ ማረጋገጫ</div>
+      </a>
+      <a class="nav-card" href="/register">
+        <div class="emoji">📝</div>
+        <div class="label" data-i18n="home.register">ምዝገባ</div>
+        <div class="desc" data-i18n="home.register.desc">ተማሪዎችን እና ሰራተኞችን ይመዝግቡ</div>
+      </a>
+      <a class="nav-card" href="/admin">
+        <div class="emoji">📊</div>
+        <div class="label" data-i18n="home.admin">የአስተዳዳሪ ዳሽቦርድ</div>
+        <div class="desc" data-i18n="home.admin.desc">ስታቲስቲክስ እና ሪፖርቶች</div>
+      </a>
+    </div>
+
+    <p class="hint" data-i18n="home.footer">ዲላ ዩኒቨርሲቲ · 2026</p>
+  </div>
+
+  <script src="/js/i18n.js"></script>
+  <script>
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('/sw.js');
+    }
+  </script>
+</body>
+</html>

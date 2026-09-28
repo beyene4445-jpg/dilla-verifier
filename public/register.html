@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="am">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>Registration · Dilla Verifier</title>
+  <meta name="theme-color" content="#020617" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/css/app.css" />
+  <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+</head>
+<body data-title-key="register.title">
+  <div id="langSwitcher"></div>
+
+  <div class="container">
+    <div class="header">
+      <h1 data-i18n="register.title">📝 ምዝገባ</h1>
+      <p data-i18n="register.subtitle">ተማሪዎችን እና ሰራተኞችን ይመዝግቡ</p>
+    </div>
+
+    <div class="nav-grid" id="typeSelection">
+      <a class="nav-card" href="#" onclick="showForm('staff');return false;">
+        <div class="emoji">👔</div>
+        <div class="label" data-i18n="register.staff">ሰራተኞች</div>
+        <div class="desc" data-i18n="register.staff.desc">የሰራተኞች ምዝገባ</div>
+      </a>
+      <a class="nav-card" href="#" onclick="showForm('noncafe');return false;">
+        <div class="emoji">📚</div>
+        <div class="label" data-i18n="register.noncafe">ያለ ካፌቴሪያ ምዝገባ</div>
+        <div class="desc" data-i18n="register.noncafe.desc">የተማሪዎች ምዝገባ (ያለ ካፌቴሪያ)</div>
+      </a>
+      <a class="nav-card" href="#" onclick="showForm('cafe');return false;">
+        <div class="emoji">🍽️</div>
+        <div class="label" data-i18n="register.cafe">የካፌቴሪያ ምዝገባ</div>
+        <div class="desc" data-i18n="register.cafe.desc">የተማሪዎች ምዝገባ (ከካፌቴሪያ ጋር)</div>
+      </a>
+    </div>
+
+    <div id="formContainer" style="display: none;">
+      <div class="card">
+        <button class="btn btn-ghost" onclick="backToSelection()">
+          <span data-i18n="register.back">← ተመለስ</span>
+        </button>
+        <h2 id="formTitle" style="margin: 16px 0; font-size: 20px;"></h2>
+
+        <div id="reader" style="margin-bottom: 16px;"></div>
+        <button class="btn btn-primary btn-block" id="scanBtn" onclick="startScan()">
+          <span data-i18n="register.scanQR">📷 Fayda QR ስካን</span>
+        </button>
+
+        <div id="formFields" style="display: none; margin-top: 20px;">
+          <input type="hidden" id="regType" />
+
+          <label style="display:block; margin-bottom: 6px; font-size: 13px; color: var(--text-2);" data-i18n="register.fan">FAN</label>
+          <input class="input" id="fan" readonly style="margin-bottom: 12px; background: rgba(0,0,0,0.3);" />
+
+          <label style="display:block; margin-bottom: 6px; font-size: 13px; color: var(--text-2);" data-i18n="register.fin">FIN</label>
+          <input class="input" id="fin" readonly style="margin-bottom: 12px; background: rgba(0,0,0,0.3);" />
+
+          <label style="display:block; margin-bottom: 6px; font-size: 13px; color: var(--text-2);" data-i18n="register.name">ስም</label>
+          <input class="input" id="name" style="margin-bottom: 12px;" />
+
+          <label style="display:block; margin-bottom: 6px; font-size: 13px; color: var(--text-2);" data-i18n="register.birthdate">የትውልድ ቀን</label>
+          <input class="input" id="birthdate" type="date" style="margin-bottom: 12px;" />
+
+          <div id="studentFields">
+            <label style="display:block; margin-bottom: 6px; font-size: 13px; color: var(--text-2);" data-i18n="register.college">ኮሌጅ</label>
+            <select class="input" id="college" onchange="updateDepartments()" style="margin-bottom: 12px;">
+              <option value="" data-i18n="register.selectCollege">-- ኮሌጅ ምረጥ --</option>
+            </select>
+
+            <label style="display:block; margin-bottom: 6px; font-size: 13px; color: var(--text-2);" data-i18n="register.department">ዲፓርትመንት</label>
+            <select class="input" id="department" style="margin-bottom: 12px;">
+              <option value="" data-i18n="register.selectDept">-- ኮሌጅ በመጀመሪያ ምረጥ --</option>
+            </select>
+
+            <label style="display:block; margin-bottom: 6px; font-size: 13px; color: var(--text-2);" data-i18n="register.year">ዓመት</label>
+            <select class="input" id="year" style="margin-bottom: 12px;">
+              <option value="1" data-i18n="register.year1">1ኛ ዓመት</option>
+              <option value="2" data-i18n="register.year2">2ኛ ዓመት</option>
+              <option value="3" data-i18n="register.year3">3ኛ ዓመት</option>
+              <option value="4" data-i18n="register.year4">4ኛ ዓመት</option>
+              <option value="5" data-i18n="register.year5">5ኛ ዓመት</option>
+              <option value="6" data-i18n="register.year6">6ኛ ዓመት</option>
+            </select>
+          </div>
+
+          <button class="btn btn-primary btn-block" onclick="submitRegistration()" style="margin-top: 16px;">
+            <span data-i18n="register.submit">✅ መዝግብ</span>
+          </button>
+        </div>
+
+        <div id="status" class="status hidden"></div>
+      </div>
+    </div>
+
+    <p class="hint"><a href="/" style="color: var(--accent);" data-i18n="register.back">← ተመለስ</a></p>
+  </div>
+
+  <script src="/js/i18n.js"></script>
+  <script type="module">
+    import { ui } from '/js/ui.js';
+    import { QRScanner } from '/js/scanner.js';
+
+    const COLLEGES = {
+      'health': {
+        name: 'College of Health and Medical Sciences',
+        departments: ['Doctor of Medicine', 'Anesthesia', 'Pharmacy', 'Nursing', 'Midwifery', 'Medical Laboratory', 'Psychiatry', 'Public Health', 'Environmental Health', 'Biomedical and Behavioral Sciences']
+      },
+      'engineering': {
+        name: 'College of Technology and Engineering',
+        departments: ['Civil Engineering', 'Electrical and Computer Engineering', 'Mechanical Engineering', 'Hydraulic and Water Resources Engineering', 'Construction Technology and Management', 'Computer Science', 'Geology']
+      },
+      'agriculture': {
+        name: 'College of Agriculture and Natural Resources',
+        departments: ['Animal Science', 'Plant Science', 'Natural Resource Management', 'Agricultural Economics', 'Horticulture', 'Agricultural Engineering', 'Food Science and Technology']
+      },
+      'business': {
+        name: 'College of Business and Economics',
+        departments: ['Accounting', 'Economics', 'Business Management', 'Cooperatives', 'Public Administration']
+      },
+      'social': {
+        name: 'College of Social Science and Humanities',
+        departments: ['Geography and Environmental Studies', 'History', 'Amharic', 'English', 'Foreign Language and Literature', 'Pedagogical Sciences']
+      },
+      'natural': {
+        name: 'College of Natural and Computational Science',
+        departments: ['Mathematics', 'Physics', 'Biology', 'Chemistry', 'Statistics', 'Computer Science and IT']
+      },
+      'law': {
+        name: 'School of Law',
+        departments: ['Law']
+      }
+    };
+
+    let scanner;
+    let currentType = '';
+
+    function populateColleges() {
+      const select = document.getElementById('college');
+      const current = select.value;
+      select.innerHTML = `<option value="" data-i18n="register.selectCollege">${t('register.selectCollege')}</option>`;
+      for (const [key, value] of Object.entries(COLLEGES)) {
+        const opt = document.createElement('option');
+        opt.value = key;
+        opt.textContent = value.name;
+        select.appendChild(opt);
+      }
+      select.value = current;
+    }
+
+    function updateDepartments() {
+      const collegeKey = document.getElementById('college').value;
+      const deptSelect = document.getElementById('department');
+      deptSelect.innerHTML = `<option value="">${t('register.selectDeptFirst')}</option>`;
+
+      if (collegeKey && COLLEGES[collegeKey]) {
+        COLLEGES[collegeKey].departments.forEach(dept => {
+          const opt = document.createElement('option');
+          opt.value = dept;
+          opt.textContent = dept;
+          deptSelect.appendChild(opt);
+        });
+      }
+    }
+
+    window.updateDepartments = updateDepartments;
+
+    window.showForm = function(type) {
+      currentType = type;
+      document.getElementById('typeSelection').style.display = 'none';
+      document.getElementById('formContainer').style.display = 'block';
+      document.getElementById('regType').value = type;
+
+      const titles = {
+        staff: t('register.formStaff'),
+        noncafe: t('register.formNonCafe'),
+        cafe: t('register.formCafe')
+      };
+      document.getElementById('formTitle').textContent = titles[type] || t('register.title');
+
+      document.getElementById('studentFields').style.display = type === 'staff' ? 'none' : 'block';
+
+      if (type !== 'staff') populateColleges();
+    };
+
+    window.backToSelection = function() {
+      document.getElementById('typeSelection').style.display = 'grid';
+      document.getElementById('formContainer').style.display = 'none';
+      document.getElementById('formFields').style.display = 'none';
+      ui.hideStatus();
+    };
+
+    window.startScan = async function() {
+      if (!scanner) {
+        scanner = new QRScanner('reader', handleScan);
+      }
+      try {
+        await scanner.start();
+      } catch (e) {
+        ui.showStatus('err', '📷', t('gateway.cameraError'), t('gateway.cameraErrorDesc'));
+      }
+    };
+
+    async function handleScan(raw) {
+      await scanner.pause();
+      try {
+        const res = await fetch('/api/parse-fayda', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ raw })
+        });
+        const data = await res.json();
+
+        if (!data.ok) {
+          ui.showStatus('err', '❓', t('gateway.invalidQR'), t('gateway.couldNotRead'));
+          return;
+        }
+
+        document.getElementById('fan').value = data.fan || '';
+        document.getElementById('fin').value = data.fin || '';
+        document.getElementById('name').value = data.name || '';
+        document.getElementById('birthdate').value = data.birthdate || '';
+
+        document.getElementById('formFields').style.display = 'block';
+        ui.showStatus('ok', '✅', t('register.qrScanned'), t('register.qrScannedMsg'));
+        ui.speak('QR code scanned successfully');
+      } catch (e) {
+        ui.showStatus('err', '⚠️', t('gateway.networkError'), t('gateway.noInternet'));
+      }
+    }
+
+    window.submitRegistration = async function() {
+      const payload = {
+        type: currentType,
+        fan: document.getElementById('fan').value,
+        fin: document.getElementById('fin').value,
+        name: document.getElementById('name').value,
+        birthdate: document.getElementById('birthdate').value,
+        college: document.getElementById('college')?.value || '',
+        department: document.getElementById('department')?.value || '',
+        year: document.getElementById('year')?.value || ''
+      };
+
+      if (!payload.fan && !payload.fin) {
+        ui.showStatus('err', '⚠️', t('register.fanRequired'), '');
+        return;
+      }
+
+      try {
+        const res = await fetch('/api/register', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        const data = await res.json();
+
+        if (data.ok) {
+          ui.showStatus('ok', '✅', t('register.success'), data.message || t('register.successMsg'));
+          ui.beep(true);
+          ui.speak('Registration successful');
+        } else {
+          ui.showStatus('err', '❌', t('register.failed'), data.message || '');
+          ui.beep(false);
+        }
+      } catch (e) {
+        ui.showStatus('err', '⚠️', t('gateway.networkError'), t('gateway.noInternet'));
+      }
+    };
+  </script>
+</body>
+</html>
