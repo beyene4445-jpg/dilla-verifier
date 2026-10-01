@@ -13,20 +13,16 @@
   <div class="container">
     <div class="header">
       <h1>🍽️ የካፌቴሪያ ማረጋገጫ</h1>
-      <p>የተማሪውን Fayda QR ኮድ ወደ ካሜራው አቅርብ</p>
+      <p>የFayda QR ኮድ ወደ ካሜራው አቅርብ</p>
     </div>
 
-    <div class="card" style="padding: 12px;">
-      <div id="reader"></div>
-    </div>
-
+    <div class="card" style="padding: 12px;"><div id="reader"></div></div>
     <div id="status" class="status hidden"></div>
 
     <div style="display: flex; gap: 10px; margin-top: 16px;">
       <button class="btn btn-ghost btn-block" onclick="window.location.href='/'">← ተመለስ</button>
       <button class="btn btn-ghost btn-block" id="toggleBtn">⏸ አቁም</button>
     </div>
-
     <p class="hint">አንድ ተማሪ ለአንድ ምግብ አንድ ጊዜ ብቻ</p>
   </div>
 
@@ -45,40 +41,30 @@
         const result = await api.verify(raw, 'cafeteria', { location: 'main-cafeteria' });
 
         if (result.allowed) {
-          const mealLabel = { breakfast: 'ቁርስ', lunch: 'ምሳ', dinner: 'እራት', 'off-hours': 'ምግብ' }[result.mealType] || 'ምግብ';
-          ui.showStatus('ok', '🍽️', 'Get In!', `${mealLabel} · መልካም ምሳ ይሁንልህ`, result.student?.name || '');
+          const meal = { breakfast: 'ቁርስ', lunch: 'ምሳ', dinner: 'እራት', 'off-hours': 'ምግብ' }[result.mealType] || 'ምግብ';
+          ui.showStatus('ok', '🍽️', 'Get In!', `${meal} · መልካም ምሳ ይሁንልህ`, result.student?.name || '');
           ui.beep(true);
           ui.speak('Get in. We wish a good meal to you');
         } else if (result.reason === 'already_used') {
-          ui.showStatus('warn', '⛔', 'This ID Used Before', 'ለአንድ ምግብ ሁለት ጊዜ አይፈቀድም', result.student?.name || '');
+          ui.showStatus('warn', '⛔', 'ID Used Before', 'ለአንድ ምግብ ሁለት ጊዜ አይፈቀድም', result.student?.name || '');
           ui.beep(false);
-          ui.speak('This ID used before. You cannot eat twice for one meal');
+        } else if (result.reason === 'not_cafe_user') {
+          ui.showStatus('err', '🚫', 'Not Cafe User', 'የካፌቴሪያ ፈቃድ የለዎትም', result.student?.name || '');
+          ui.beep(false);
         } else {
-          const titles = {
-            not_student: ['🚫', 'Not Allowed Here', 'የዲላ ዩኒቨርሲቲ ተማሪ አይደለም'],
-            inactive: ['⚠️', 'Not Active', 'የተማሪው ሁኔታ ንቁ አይደለም'],
-            invalid_qr: ['❓', 'Invalid QR', 'የQR ኮዱ ሊነበብ አልቻለም'],
-            server_error: ['⚠️', 'Server Error', 'እባክህ እንደገና ሞክር'],
-          };
-          const [icon, title, sub] = titles[result.reason] || ['🚫', 'Not Allowed', result.message || ''];
-          ui.showStatus('err', icon, title, sub, result.student?.name || '');
+          ui.showStatus('err', '🚫', 'Not Allowed', result.message || '');
           ui.beep(false);
-          ui.speak('Not allowed here. Please talk to security guard');
         }
       } catch (e) {
         ui.showStatus('err', '⚠️', 'Network Error', 'ኢንተርኔት አልተገኘም');
         ui.beep(false);
       }
 
-      setTimeout(async () => {
-        processing = false;
-        try { await scanner.resume(); } catch {}
-      }, 3000);
+      setTimeout(async () => { processing = false; try { await scanner.resume(); } catch {} }, 3000);
     });
 
     scanner.start().catch(err => {
-      ui.showStatus('err', '📷', 'Camera Error', 'ካሜራ ሊከፈት አልቻለም — HTTPS ያስፈልጋል');
-      console.error(err);
+      ui.showStatus('err', '📷', 'Camera Error', 'ካሜራ ሊከፈት አልቻለም');
     });
 
     let paused = false;
