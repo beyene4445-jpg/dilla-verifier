@@ -1,9 +1,9 @@
 {
-    "name": "Dilla University Verifier",
-    "short_name": "DU Verifier",
-    "start_url": "/",
-    "display": "standalone",
-    "background_color": "#020617",
-    "theme_color": "#020617",
-    "orientation": "portrait"
-  }
+  "name": "Dilla University Verifier",
+  "short_name": "DU Verifier",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#020617",
+  "theme_color": "#020617",
+  "orientation": "portrait"
+}
