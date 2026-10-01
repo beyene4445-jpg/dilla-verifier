@@ -3,125 +3,631 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-  <title>Admin · Dilla Verifier</title>
+  <title>ምዝገባ · Dilla Verifier</title>
   <meta name="theme-color" content="#020617" />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="/css/app.css" />
+  <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"></script>
+  <style>
+    .lbl {
+      display: block;
+      margin-bottom: 6px;
+      font-size: 13px;
+      color: var(--text-2);
+      font-weight: 500;
+    }
+    .step-title {
+      margin: 24px 0 12px;
+      font-size: 16px;
+      font-weight: 700;
+      color: var(--accent);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .step-title .num {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #10b981, #06b6d4);
+      color: white;
+      font-size: 14px;
+    }
+    .video-container {
+      background: #000;
+      border-radius: 12px;
+      overflow: hidden;
+      margin-bottom: 12px;
+      position: relative;
+      aspect-ratio: 4/3;
+    }
+    .video-container video {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+    .face-guide {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .face-guide .oval {
+      width: 55%;
+      height: 75%;
+      border: 3px dashed rgba(16, 185, 129, 0.6);
+      border-radius: 50%;
+      box-shadow: 0 0 30px rgba(16, 185, 129, 0.3);
+    }
+    .capture-btn {
+      background: linear-gradient(135deg, #10b981, #06b6d4);
+      color: white;
+      border: none;
+      padding: 14px;
+      border-radius: 12px;
+      font-weight: 700;
+      font-size: 15px;
+      cursor: pointer;
+      width: 100%;
+      transition: all 0.2s;
+    }
+    .capture-btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+    .capture-btn.captured {
+      background: linear-gradient(135deg, #10b981, #059669);
+    }
+    .file-input {
+      width: 100%;
+      padding: 12px;
+      background: rgba(15, 23, 42, 0.7);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      color: var(--text-0);
+      font-size: 14px;
+      cursor: pointer;
+    }
+    .file-input::file-selector-button {
+      background: linear-gradient(135deg, #10b981, #06b6d4);
+      color: white;
+      border: none;
+      padding: 8px 16px;
+      border-radius: 8px;
+      font-weight: 600;
+      cursor: pointer;
+      margin-right: 12px;
+    }
+    .preview-img {
+      max-width: 100%;
+      border-radius: 12px;
+      margin-top: 12px;
+      border: 2px solid var(--accent);
+    }
+    .badge-success {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 12px;
+      background: rgba(16, 185, 129, 0.15);
+      border: 1px solid var(--accent);
+      border-radius: 999px;
+      font-size: 12px;
+      color: #6ee7b7;
+      font-weight: 600;
+      margin-top: 8px;
+    }
+    .divider {
+      height: 1px;
+      background: var(--border);
+      margin: 24px 0;
+    }
+  </style>
 </head>
 <body>
   <div class="container">
     <div class="header">
-      <h1>📊 የአስተዳዳሪ ዳሽቦርድ</h1>
-      <p>Dilla University</p>
+      <h1>📝 ምዝገባ</h1>
+      <p>Registration · Dilla University</p>
     </div>
 
-    <div class="card" id="loginCard">
-      <label class="lbl">የAdmin ቁልፍ</label>
-      <input class="input" type="password" id="adminKey" placeholder="Admin key..." />
-      <button class="btn btn-primary btn-block" style="margin-top: 12px;" onclick="loadStats()">ግባ</button>
-    </div>
-
-    <div id="dashboard" style="display: none;">
-      <div class="nav-grid" style="grid-template-columns: repeat(2, 1fr); gap: 8px; margin-bottom: 20px;">
-        <div class="card" style="text-align: center; padding: 16px;">
-          <div style="font-size: 28px; font-weight: 800; color: #06b6d4;" id="s-total">–</div>
-          <div style="font-size: 11px; color: var(--text-2);">ጠቅላላ</div>
-        </div>
-        <div class="card" style="text-align: center; padding: 16px;">
-          <div style="font-size: 28px; font-weight: 800; color: #10b981;" id="s-active">–</div>
-          <div style="font-size: 11px; color: var(--text-2);">የተፈቀዱ</div>
-        </div>
-        <div class="card" style="text-align: center; padding: 16px;">
-          <div style="font-size: 28px; font-weight: 800; color: #f59e0b;" id="s-pending">–</div>
-          <div style="font-size: 11px; color: var(--text-2);">በመጠበቅ</div>
-        </div>
-        <div class="card" style="text-align: center; padding: 16px;">
-          <div style="font-size: 28px; font-weight: 800; color: #ef4444;" id="s-rejected">–</div>
-          <div style="font-size: 11px; color: var(--text-2);">የተከለከሉ</div>
-        </div>
+    <!-- እርምጃ 1: ዓይነት መምረጥ -->
+    <div id="step1">
+      <div class="nav-grid">
+        <a class="nav-card" href="#" onclick="chooseType('staff');return false;">
+          <div class="emoji">👔</div>
+          <div class="label">Staff & Workers</div>
+          <div class="desc">የሰራተኞች ምዝገባ</div>
+        </a>
+        <a class="nav-card" href="#" onclick="chooseType('noncafe');return false;">
+          <div class="emoji">📚</div>
+          <div class="label">Non-Cafe</div>
+          <div class="desc">ያለ ካፌቴሪያ</div>
+        </a>
+        <a class="nav-card" href="#" onclick="chooseType('cafe');return false;">
+          <div class="emoji">🍽️</div>
+          <div class="label">Cafeteria</div>
+          <div class="desc">ከካፌቴሪያ · National ID ያስፈልጋል</div>
+        </a>
       </div>
+    </div>
 
+    <!-- እርምጃ 2: ቅጽ -->
+    <div id="step2" style="display: none;">
       <div class="card">
-        <h3 style="margin-bottom: 12px;">⏳ በመጠበቅ ላይ</h3>
-        <div id="pendingList"></div>
-      </div>
+        <button class="btn btn-ghost" onclick="backToStep1()">← ተመለስ</button>
+        <h2 id="formTitle" style="margin: 16px 0; font-size: 20px;"></h2>
 
-      <button class="btn btn-ghost btn-block" onclick="loadStats()">🔄 አድስ</button>
+        <!-- ============ ክፍል 1: የFayda QR ============ -->
+        <div class="step-title">
+          <span class="num">1</span>
+          <span>የFayda QR ስካን</span>
+        </div>
+
+        <div id="reader" style="border-radius: 12px; overflow: hidden; background: #000; min-height: 280px; margin-bottom: 12px;"></div>
+
+        <button class="btn btn-primary btn-block" onclick="startScan()" style="margin-bottom: 12px;">
+          📷 Fayda QR ስካን ጀምር
+        </button>
+
+        <div id="scanStatus" style="text-align: center; padding: 8px; font-size: 13px; color: var(--text-2);">
+          ⏳ ዝግጁ ነው
+        </div>
+
+        <details style="margin-top: 12px;">
+          <summary style="cursor: pointer; color: var(--text-2); font-size: 13px; padding: 8px;">
+            🔧 QR ካልሰራ — በእጅ አስገባ
+          </summary>
+          <div style="margin-top: 12px;">
+            <input class="input" id="manualFan" placeholder="FAN (የFayda ቁጥር)" style="margin-bottom: 8px;" />
+            <input class="input" id="manualFin" placeholder="FIN" style="margin-bottom: 8px;" />
+            <button class="btn btn-ghost btn-block" onclick="useManualEntry()">✅ ተጠቀም</button>
+          </div>
+        </details>
+
+        <div class="divider"></div>
+
+        <!-- ============ ክፍል 2: የግል መረጃ ============ -->
+        <div class="step-title">
+          <span class="num">2</span>
+          <span>የግል መረጃ</span>
+        </div>
+
+        <label class="lbl">ሙሉ ስም *</label>
+        <input class="input" id="fName" style="margin-bottom: 12px;" placeholder="ሙሉ ስም" />
+
+        <label class="lbl">የዩኒቨርሲቲ ID ቁጥር</label>
+        <input class="input" id="fUniversityId" style="margin-bottom: 12px;" placeholder="ለምሳሌ: DU/12345/2016" />
+
+        <!-- የተማሪ መስኮች -->
+        <div id="studentOnly">
+          <label class="lbl">ኮሌጅ</label>
+          <select class="input" id="fCollege" onchange="updateDepartments()" style="margin-bottom: 12px;">
+            <option value="">-- ኮሌጅ ምረጥ --</option>
+          </select>
+
+          <label class="lbl">ዲፓርትመንት</label>
+          <select class="input" id="fDepartment" disabled style="margin-bottom: 12px;">
+            <option value="">-- ኮሌጅ በመጀመሪያ ምረጥ --</option>
+          </select>
+
+          <label class="lbl">ዓመት</label>
+          <select class="input" id="fYear" style="margin-bottom: 12px;">
+            <option value="1">1ኛ ዓመት</option>
+            <option value="2">2ኛ ዓመት</option>
+            <option value="3">3ኛ ዓመት</option>
+            <option value="4">4ኛ ዓመት</option>
+            <option value="5">5ኛ ዓመት</option>
+            <option value="6">6ኛ ዓመት</option>
+          </select>
+        </div>
+
+        <label class="lbl">ስልክ ቁጥር *</label>
+        <input class="input" id="fPhone" placeholder="09xxxxxxxx ወይም +2519xxxxxxxx" style="margin-bottom: 12px;" />
+
+        <label class="lbl">ክልል *</label>
+        <select class="input" id="fRegion" style="margin-bottom: 12px;">
+          <option value="">-- ክልል ምረጥ --</option>
+          <option>Addis Ababa</option>
+          <option>Afar</option>
+          <option>Amhara</option>
+          <option>Benishangul-Gumuz</option>
+          <option>Central Ethiopia</option>
+          <option>Dire Dawa</option>
+          <option>Gambela</option>
+          <option>Harari</option>
+          <option>Oromia</option>
+          <option>Sidama</option>
+          <option>Somali</option>
+          <option>South Ethiopia</option>
+          <option>South West Ethiopia</option>
+          <option>Tigray</option>
+        </select>
+
+        <label class="lbl">ጾታ</label>
+        <select class="input" id="fGender" style="margin-bottom: 12px;">
+          <option value="M">ወንድ</option>
+          <option value="F">ሴት</option>
+        </select>
+
+        <label class="lbl">የትውልድ ቀን</label>
+        <input class="input" id="fBirthdate" type="date" style="margin-bottom: 12px;" />
+
+        <div class="divider"></div>
+
+        <!-- ============ ክፍል 3: የፊት ምዝገባ ============ -->
+        <div class="step-title">
+          <span class="num">3</span>
+          <span>የፊት ምዝገባ *</span>
+        </div>
+
+        <div class="video-container">
+          <video id="video" autoplay muted playsinline></video>
+          <div class="face-guide">
+            <div class="oval"></div>
+          </div>
+        </div>
+
+        <button class="capture-btn" id="captureBtn" onclick="captureFace()">
+          📸 ፊቴን አንሳ
+        </button>
+
+        <div id="faceStatus" style="text-align: center; padding: 12px; font-size: 13px; color: var(--text-2);">
+          ፊትዎን በክብው ውስጥ ያስገቡ
+        </div>
+
+        <div id="faceSuccess" style="display: none; text-align: center;">
+          <div class="badge-success">
+            ✅ ፊት በተሳካ ሁኔታ ተመዝግቧል
+          </div>
+        </div>
+
+        <!-- ============ ክፍል 4: National ID (ካፌቴሪያ ብቻ) ============ -->
+        <div id="nationalIdSection" style="display: none;">
+          <div class="divider"></div>
+          <div class="step-title">
+            <span class="num">4</span>
+            <span>የNational ID ፎቶ *</span>
+          </div>
+
+          <p style="color: var(--text-2); font-size: 13px; margin-bottom: 12px;">
+            ለካፌቴሪያ ምዝገባ — የFayda/National ID ካርድዎን ፎቶ ያስገቡ።
+          </p>
+
+          <input type="file" id="fNationalId" accept="image/*" class="file-input" />
+
+          <div id="nationalIdPreview"></div>
+
+          <div id="nationalIdSuccess" style="display: none; text-align: center;">
+            <div class="badge-success">
+              ✅ የNational ID ፎቶ ተጭኗል
+            </div>
+          </div>
+        </div>
+
+        <div class="divider"></div>
+
+        <!-- ============ ማስገባት ============ -->
+        <button class="btn btn-primary btn-block" onclick="submitRegistration()" style="padding: 18px; font-size: 16px;">
+          ✅ መዝግብ
+        </button>
+
+        <div id="status" class="status hidden"></div>
+      </div>
     </div>
 
     <p class="hint"><a href="/" style="color: var(--accent);">← ተመለስ</a></p>
   </div>
 
-  <script>
-    let adminKey = '';
+  <script type="module">
+    import { ui } from '/js/ui.js';
+    import { QRScanner } from '/js/scanner.js';
+    import { faceHelper } from '/js/face-helper.js';
 
-    async function loadStats() {
-      adminKey = document.getElementById('adminKey').value.trim() || localStorage.getItem('adminKey');
-      if (!adminKey) return alert('የAdmin ቁልፍ ያስፈልጋል');
-      localStorage.setItem('adminKey', adminKey);
+    // ============ የDilla University ኮሌጆች ============
+    const COLLEGES = {
+      'College of Health and Medical Sciences': [
+        'Doctor of Medicine', 'Anesthesia', 'Pharmacy', 'Nursing',
+        'Midwifery', 'Medical Laboratory', 'Psychiatry', 'Public Health',
+        'Environmental Health', 'Biomedical and Behavioral Sciences'
+      ],
+      'College of Technology and Engineering': [
+        'Civil Engineering', 'Electrical and Computer Engineering',
+        'Mechanical Engineering', 'Hydraulic and Water Resources Engineering',
+        'Construction Technology and Management', 'Computer Science', 'Geology'
+      ],
+      'College of Agriculture and Natural Resources': [
+        'Animal Science', 'Plant Science', 'Natural Resource Management',
+        'Agricultural Economics', 'Horticulture', 'Agricultural Engineering',
+        'Food Science and Technology'
+      ],
+      'College of Business and Economics': [
+        'Accounting', 'Economics', 'Business Management',
+        'Cooperatives', 'Public Administration'
+      ],
+      'College of Social Science and Humanities': [
+        'Geography and Environmental Studies', 'History', 'Amharic',
+        'English', 'Foreign Language and Literature', 'Pedagogical Sciences'
+      ],
+      'College of Natural and Computational Science': [
+        'Mathematics', 'Physics', 'Biology', 'Chemistry',
+        'Statistics', 'Computer Science and IT'
+      ],
+      'School of Law': ['Law']
+    };
+
+    let scanner;
+    let currentType = '';
+    let scannedData = {};
+    let faceDescriptor = null;
+    let nationalIdBase64 = '';
+
+    // ============ አማራጭ ዓይነት መምረጥ ============
+    window.chooseType = async function(type) {
+      currentType = type;
+      document.getElementById('step1').style.display = 'none';
+      document.getElementById('step2').style.display = 'block';
+
+      const titles = {
+        staff: '👔 Staff & Workers',
+        noncafe: '📚 Non-Cafe Registration',
+        cafe: '🍽️ Cafeteria Registration'
+      };
+      document.getElementById('formTitle').textContent = titles[type] || 'ምዝገባ';
+
+      // የተማሪ መስኮች ለ Staff አይታዩም
+      document.getElementById('studentOnly').style.display = type === 'staff' ? 'none' : 'block';
+
+      // የNational ID ክፍል (ካፌቴሪያ ብቻ)
+      document.getElementById('nationalIdSection').style.display = type === 'cafe' ? 'block' : 'none';
+
+      // ኮሌጆችን ሙላ
+      const collegeSelect = document.getElementById('fCollege');
+      collegeSelect.innerHTML = '<option value="">-- ኮሌጅ ምረጥ --</option>';
+      Object.keys(COLLEGES).forEach(name => {
+        const opt = document.createElement('option');
+        opt.value = name;
+        opt.textContent = name;
+        collegeSelect.appendChild(opt);
+      });
+
+      // የFayda QR ስካነር ጀምር
+      setTimeout(() => startScan(), 300);
+
+      // የፊት ካሜራ ጀምር
+      try {
+        await faceHelper.loadModels();
+        const video = document.getElementById('video');
+        const stream = await navigator.mediaDevices.getUserMedia({
+          video: { facingMode: 'user', width: 640, height: 480 },
+        });
+        video.srcObject = stream;
+        document.getElementById('faceStatus').textContent = '✅ ካሜራ ዝግጁ ነው — "ፊቴን አንሳ" ይጫኑ';
+      } catch (e) {
+        console.error('Camera error:', e);
+        document.getElementById('faceStatus').textContent = '❌ ካሜራ ሊከፈት አልቻለም — HTTPS ያስፈልጋል';
+      }
+
+      // የNational ID ፕሪቪው
+      document.getElementById('fNationalId').addEventListener('change', (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        if (file.size > 5 * 1024 * 1024) {
+          alert('ፎቶው ከ5MB መብለጥ የለበትም');
+          return;
+        }
+
+        const reader = new FileReader();
+        reader.onload = (ev) => {
+          nationalIdBase64 = ev.target.result;
+          document.getElementById('nationalIdPreview').innerHTML =
+            `<img src="${ev.target.result}" class="preview-img" />`;
+          document.getElementById('nationalIdSuccess').style.display = 'block';
+        };
+        reader.readAsDataURL(file);
+      });
+    };
+
+    window.backToStep1 = function() {
+      if (scanner) scanner.stop();
+      document.getElementById('step1').style.display = 'block';
+      document.getElementById('step2').style.display = 'none';
+      document.getElementById('status').className = 'status hidden';
+    };
+
+    // ============ ዲፓርትመንቶች ============
+    window.updateDepartments = function() {
+      const college = document.getElementById('fCollege').value;
+      const deptSelect = document.getElementById('fDepartment');
+      deptSelect.innerHTML = '<option value="">-- ምረጥ --</option>';
+
+      if (college && COLLEGES[college]) {
+        COLLEGES[college].forEach(dept => {
+          const opt = document.createElement('option');
+          opt.value = dept;
+          opt.textContent = dept;
+          deptSelect.appendChild(opt);
+        });
+        deptSelect.disabled = false;
+      } else {
+        deptSelect.disabled = true;
+      }
+    };
+
+    // ============ QR ስካን ============
+    window.startScan = async function() {
+      if (!scanner) {
+        scanner = new QRScanner('reader', handleScan);
+      }
+      try {
+        document.getElementById('scanStatus').textContent = '📷 ካሜራ ዝግጁ — QR ኮድ ወደ ካሜራ ያቅርቡ';
+        await scanner.start();
+      } catch (e) {
+        console.error('Scanner error:', e);
+        document.getElementById('scanStatus').textContent = '❌ ካሜራ ሊከፈት አልቻለም';
+      }
+    };
+
+    async function handleScan(raw) {
+      console.log('📷 QR Scanned:', raw);
+      await scanner.pause();
+      document.getElementById('scanStatus').textContent = '⏳ QR በመቀየር ላይ...';
 
       try {
-        const [statsRes, pendingRes] = await Promise.all([
-          fetch(`/api/stats?key=${encodeURIComponent(adminKey)}`),
-          fetch(`/api/admin/pending?key=${encodeURIComponent(adminKey)}`),
-        ]);
+        const res = await fetch('/api/parse-fayda', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ raw })
+        });
+        const data = await res.json();
+        console.log('🔍 Parse result:', data);
 
-        if (!statsRes.ok) throw new Error('Unauthorized');
-
-        const stats = await statsRes.json();
-        const pendingData = await pendingRes.json();
-
-        document.getElementById('loginCard').style.display = 'none';
-        document.getElementById('dashboard').style.display = 'block';
-
-        document.getElementById('s-total').textContent = stats.total;
-        document.getElementById('s-active').textContent = stats.active;
-        document.getElementById('s-pending').textContent = stats.pending;
-        document.getElementById('s-rejected').textContent = stats.rejected;
-
-        const pendingList = document.getElementById('pendingList');
-        if (pendingData.pending && pendingData.pending.length) {
-          pendingList.innerHTML = pendingData.pending.map(p => `
-            <div style="padding: 12px; border-bottom: 1px solid var(--border); display: flex; gap: 8px; align-items: center;">
-              <div style="flex: 1;">
-                <div style="font-weight: 600; font-size: 14px;">${p.name || '—'}</div>
-                <div style="font-size: 11px; color: var(--text-2); margin-top: 4px;">
-                  ${p.userType || ''} · ${p.phone || ''}
-                </div>
-              </div>
-              <button class="btn btn-primary" style="padding: 6px 12px; font-size: 12px;" onclick="approve(${p.rowIndex})">✓</button>
-              <button class="btn btn-ghost" style="padding: 6px 12px; font-size: 12px;" onclick="reject(${p.rowIndex})">✕</button>
-            </div>
-          `).join('');
-        } else {
-          pendingList.innerHTML = '<div style="text-align: center; color: var(--text-2); padding: 20px;">✅ ሁሉም ተረጋግጧል</div>';
+        if (!data.ok) {
+          document.getElementById('scanStatus').textContent = '❌ ይህ Fayda QR አይደለም';
+          setTimeout(() => scanner.resume(), 2500);
+          return;
         }
+
+        scannedData = data;
+        if (data.name) document.getElementById('fName').value = data.name;
+        if (data.birthdate) document.getElementById('fBirthdate').value = data.birthdate;
+        if (data.gender) document.getElementById('fGender').value = data.gender;
+
+        document.getElementById('scanStatus').innerHTML =
+          `✅ <b>${data.name || 'QR ተነብቧል'}</b><br>FAN: ${data.fan || '—'} · FIN: ${data.fin || '—'}`;
+
+        ui.beep(true);
+        ui.speak('QR code scanned successfully');
+        await scanner.stop();
       } catch (e) {
-        alert('ስህተት: ' + e.message);
+        console.error('Handle scan error:', e);
+        document.getElementById('scanStatus').textContent = '❌ ኔትወርክ ስህተት';
+        setTimeout(() => scanner.resume(), 2500);
       }
     }
 
-    async function approve(rowIndex) {
-      await fetch('/api/admin/approve', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ key: adminKey, rowIndex, decision: 'approve' }),
-      });
-      loadStats();
-    }
+    window.useManualEntry = function() {
+      const fan = document.getElementById('manualFan').value.trim();
+      const fin = document.getElementById('manualFin').value.trim();
 
-    async function reject(rowIndex) {
-      if (!confirm('ማስቀረት ትፈልጋለህ?')) return;
-      await fetch('/api/admin/approve', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ key: adminKey, rowIndex, decision: 'reject' }),
-      });
-      loadStats();
-    }
+      if (!fan && !fin) {
+        return alert('FAN ወይም FIN ያስፈልጋል');
+      }
 
-    const saved = localStorage.getItem('adminKey');
-    if (saved) { document.getElementById('adminKey').value = saved; loadStats(); }
+      scannedData = { fan, fin, name: '', birthdate: '', gender: '' };
+      document.getElementById('scanStatus').innerHTML =
+        `✅ <b>በእጅ ገብቷል</b><br>FAN: ${fan || '—'} · FIN: ${fin || '—'}`;
+      ui.beep(true);
+    };
+
+    // ============ ፊት አንሳ ============
+    window.captureFace = async function() {
+      const video = document.getElementById('video');
+      const status = document.getElementById('faceStatus');
+      const btn = document.getElementById('captureBtn');
+
+      try {
+        status.textContent = '⏳ ፊት በመተንተን ላይ...';
+        btn.disabled = true;
+
+        const descriptor = await faceHelper.captureDescriptor(video);
+
+        if (!descriptor) {
+          status.textContent = '❌ ፊት አልታወቀም — ወደ ካሜራ ቅርብ ይሁኑ፣ ብርሃን ይሁን';
+          btn.disabled = false;
+          ui.beep(false);
+          return;
+        }
+
+        faceDescriptor = descriptor;
+        status.textContent = '✅ ፊት በተሳካ ሁኔታ ተመዝግቧል!';
+        document.getElementById('faceSuccess').style.display = 'block';
+        btn.textContent = '✅ ፊት ተነስቷል';
+        btn.classList.add('captured');
+        ui.beep(true);
+        ui.speak('Face captured successfully');
+      } catch (e) {
+        console.error('Capture face error:', e);
+        status.textContent = '❌ ስህተት ተፈጥሯል: ' + e.message;
+        btn.disabled = false;
+      }
+    };
+
+    // ============ ምዝገባ አስገባ ============
+    window.submitRegistration = async function() {
+      const payload = {
+        type: currentType,
+        fan: scannedData.fan || '',
+        fin: scannedData.fin || '',
+        name: document.getElementById('fName').value.trim(),
+        universityId: document.getElementById('fUniversityId').value.trim(),
+        college: document.getElementById('fCollege')?.value || '',
+        department: document.getElementById('fDepartment')?.value || '',
+        year: document.getElementById('fYear')?.value || '',
+        phone: document.getElementById('fPhone').value.trim(),
+        region: document.getElementById('fRegion').value,
+        gender: document.getElementById('fGender').value,
+        birthdate: document.getElementById('fBirthdate').value,
+        faceDescriptor,
+        nationalIdImage: currentType === 'cafe' ? nationalIdBase64 : '',
+      };
+
+      // ፍተሻዎች
+      if (!payload.name || !payload.phone || !payload.region) {
+        return ui.showStatus('err', '⚠️', 'ያልተሟላ', 'ስም, ስልክ እና ክልል ያስፈልጋሉ');
+      }
+      if (!payload.fan && !payload.fin) {
+        return ui.showStatus('err', '⚠️', 'Fayda QR ያስፈልጋል', 'Fayda QR ስካን ያድርጉ ወይም በእጅ ያስገቡ');
+      }
+      if (!payload.faceDescriptor) {
+        return ui.showStatus('err', '⚠️', 'የፊት ምዝገባ ያስፈልጋል', '"ፊቴን አንሳ" የሚለውን ይጫኑ');
+      }
+      if (currentType === 'cafe' && !payload.nationalIdImage) {
+        return ui.showStatus('err', '⚠️', 'National ID ያስፈልጋል', 'የNational ID ፎቶ ይጫኑ');
+      }
+      if (currentType !== 'staff' && (!payload.college || !payload.department)) {
+        return ui.showStatus('err', '⚠️', 'ኮሌጅ እና ዲፓርትመንት ያስፈልጋሉ', 'ሁለቱንም ይምረጡ');
+      }
+
+      ui.showStatus('warn', '⏳', 'በመመዝገብ ላይ...', 'እባክህ ጠብቅ');
+
+      try {
+        const res = await fetch('/api/register', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        const data = await res.json();
+        console.log('Register response:', data);
+
+        if (data.ok) {
+          ui.showStatus('ok', '✅', 'ተመዝግቧል!', 'Admin ሲያጸድቅ ወደ ስርዓቱ መግባት ትችላለህ');
+          ui.beep(true);
+          ui.speak('Registration successful. Please wait for admin approval');
+          setTimeout(() => {
+            backToStep1();
+            // Reset
+            faceDescriptor = null;
+            nationalIdBase64 = '';
+            scannedData = {};
+          }, 5000);
+        } else {
+          ui.showStatus('err', '❌', 'ምዝገባ አልተሳካም', data.message || 'ስህተት ተፈጥሯል');
+          ui.beep(false);
+        }
+      } catch (e) {
+        console.error('Submit error:', e);
+        ui.showStatus('err', '⚠️', 'Network Error', 'ኔትወርክ ስህተት — እንደገና ሞክር');
+      }
+    };
   </script>
 </body>
 </html>
