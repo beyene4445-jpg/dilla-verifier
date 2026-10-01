@@ -9,53 +9,51 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="/css/app.css" />
 </head>
-<body data-title-key="app.title">
-  <!-- Language Switcher -->
-  <div id="langSwitcher"></div>
-
+<body>
   <div class="container">
     <div class="header">
-      <h1 data-i18n="app.title">Dilla University</h1>
-      <p data-i18n="app.subtitle">የFayda QR ማረጋገጫ ስርዓት</p>
-    </div>
-
-    <div class="card">
-      <p style="color: var(--text-1); font-size: 14px; line-height: 1.6;" data-i18n="home.welcome">
-        ይህ ስርዓት የተማሪዎችን የFayda QR ኮድ በመቃኘት የዲላ ዩኒቨርሲቲ መሆናቸውን ያረጋግጣል።
-      </p>
+      <h1>Dilla University</h1>
+      <p>የFayda QR እና የፊት ማረጋገጫ ስርዓት</p>
     </div>
 
     <div class="nav-grid">
       <a class="nav-card" href="/gateway">
         <div class="emoji">🚪</div>
-        <div class="label" data-i18n="home.gateway">የበር ማረጋገጫ</div>
-        <div class="desc" data-i18n="home.gateway.desc">በመግቢያ በር ላይ ማረጋገጫ</div>
+        <div class="label">የበር ማረጋገጫ</div>
+        <div class="desc">QR Scan</div>
+      </a>
+      <a class="nav-card" href="/verify-face?mode=gate">
+        <div class="emoji">📷</div>
+        <div class="label">የፊት ማረጋገጫ</div>
+        <div class="desc">Face Verify</div>
       </a>
       <a class="nav-card" href="/cafeteria">
         <div class="emoji">🍽️</div>
-        <div class="label" data-i18n="home.cafeteria">የካፌቴሪያ ማረጋገጫ</div>
-        <div class="desc" data-i18n="home.cafeteria.desc">የምግብ ማረጋገጫ</div>
+        <div class="label">ካፌቴሪያ · QR</div>
+        <div class="desc">Cafeteria QR</div>
+      </a>
+      <a class="nav-card" href="/verify-face?mode=cafeteria&loc=main-cafeteria">
+        <div class="emoji">😊</div>
+        <div class="label">ካፌቴሪያ · ፊት</div>
+        <div class="desc">Cafeteria Face</div>
       </a>
       <a class="nav-card" href="/register">
         <div class="emoji">📝</div>
-        <div class="label" data-i18n="home.register">ምዝገባ</div>
-        <div class="desc" data-i18n="home.register.desc">ተማሪዎችን እና ሰራተኞችን ይመዝግቡ</div>
+        <div class="label">ምዝገባ</div>
+        <div class="desc">Registration</div>
       </a>
       <a class="nav-card" href="/admin">
         <div class="emoji">📊</div>
-        <div class="label" data-i18n="home.admin">የአስተዳዳሪ ዳሽቦርድ</div>
-        <div class="desc" data-i18n="home.admin.desc">ስታቲስቲክስ እና ሪፖርቶች</div>
+        <div class="label">Admin</div>
+        <div class="desc">Dashboard</div>
       </a>
     </div>
 
-    <p class="hint" data-i18n="home.footer">ዲላ ዩኒቨርሲቲ · 2026</p>
+    <p class="hint">Dilla University · 2026</p>
   </div>
 
-  <script src="/js/i18n.js"></script>
   <script>
-    if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('/sw.js');
-    }
+    if ('serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js');
   </script>
 </body>
 </html>
