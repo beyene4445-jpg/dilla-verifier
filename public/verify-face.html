@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="am">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>Face Verify · Dilla</title>
+  <meta name="theme-color" content="#020617" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/css/app.css" />
+  <script src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"></script>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>📷 የፊት ማረጋገጫ</h1>
+      <p>Face Verification · Dilla University</p>
+    </div>
+
+    <div class="card" style="padding: 12px;">
+      <video id="video" autoplay muted playsinline style="width: 100%; border-radius: 12px; background: #000;"></video>
+    </div>
+
+    <div id="faceStatus" style="text-align: center; padding: 12px; font-size: 14px; color: var(--text-2);">
+      ⏳ ካሜራ በመክፈት ላይ...
+    </div>
+
+    <div id="status" class="status hidden"></div>
+
+    <div style="display: flex; gap: 10px; margin-top: 16px;">
+      <button class="btn btn-ghost btn-block" onclick="window.location.href='/'">← ተመለስ</button>
+      <button class="btn btn-primary btn-block" id="scanBtn" onclick="verifyNow()">🔍 አረጋግጥ</button>
+    </div>
+  </div>
+
+  <script type="module">
+    import { ui } from '/js/ui.js';
+    import { faceHelper } from '/js/face-helper.js';
+    import { api } from '/js/api.js';
+
+    const params = new URLSearchParams(window.location.search);
+    const mode = params.get('mode') || 'gate';
+    const location = params.get('loc') || 'main';
+    let video;
+
+    async function init() {
+      video = document.getElementById('video');
+      try {
+        await faceHelper.loadModels();
+        const stream = await navigator.mediaDevices.getUserMedia({
+          video: { facingMode: 'user', width: 640, height: 480 },
+        });
+        video.srcObject = stream;
+        document.getElementById('faceStatus').textContent = '✅ ዝግጁ — "አረጋግጥ" ይጫኑ';
+      } catch (e) {
+        document.getElementById('faceStatus').textContent = '❌ ካሜራ ሊከፈት አልቻለም';
+      }
+    }
+
+    window.verifyNow = async function() {
+      const btn = document.getElementById('scanBtn');
+      btn.disabled = true;
+      btn.textContent = '⏳ በማረጋገጥ ላይ...';
+
+      try {
+        const descriptor = await faceHelper.captureDescriptor(video);
+        if (!descriptor) {
+          ui.showStatus('err', '❌', 'ፊት አልታወቀም', 'ፊትዎን ወደ ካሜራ ያቅርቡ');
+          ui.beep(false);
+          return;
+        }
+
+        const data = await api.verifyFace(descriptor, mode, { location, gate: location });
+
+        if (data.allowed) {
+          const icon = mode === 'cafeteria' ? '🍽️' : '✅';
+          const sub = mode === 'cafeteria' ? 'መልካም ምሳ ይሁንልህ' : 'የዲላ ዩኒቨርሲቲ አባል ነው';
+          ui.showStatus('ok', icon, 'Get In!', sub, data.student?.name || '');
+          ui.beep(true);
+          ui.speak('Get in');
+        } else if (data.reason === 'already_used') {
+          ui.showStatus('warn', '⛔', 'ፊት ተጠቅሟል', 'ለአንድ ምግብ ሁለት ጊዜ አይፈቀድም', data.student?.name || '');
+          ui.beep(false);
+        } else if (data.reason === 'not_approved') {
+          ui.showStatus('err', '⏳', 'ያልተፈቀደ', 'Admin ገና አላጸደቀም', data.student?.name || '');
+          ui.beep(false);
+        } else {
+          ui.showStatus('err', '🚫', 'አልታወቀም', data.message || 'ፊት አልታወቀም');
+          ui.beep(false);
+          ui.speak('Not recognized');
+        }
+      } catch (e) {
+        ui.showStatus('err', '⚠️', 'ስህተት', e.message);
+        ui.beep(false);
+      } finally {
+        btn.disabled = false;
+        btn.textContent = '🔍 አረጋግጥ';
+      }
+    };
+
+    init();
+  </script>
+</body>
+</html>
