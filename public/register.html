@@ -3,344 +3,125 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-  <title>ምዝገባ · Dilla Verifier</title>
+  <title>Admin · Dilla Verifier</title>
   <meta name="theme-color" content="#020617" />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="/css/app.css" />
-  <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
 </head>
 <body>
   <div class="container">
     <div class="header">
-      <h1>📝 ምዝገባ</h1>
-      <p>Registration · Dilla University</p>
+      <h1>📊 የአስተዳዳሪ ዳሽቦርድ</h1>
+      <p>Dilla University</p>
     </div>
 
-    <!-- እርምጃ 1: ዓይነት መምረጥ -->
-    <div id="step1">
-      <div class="nav-grid">
-        <a class="nav-card" href="#" onclick="chooseType('staff');return false;">
-          <div class="emoji">👔</div>
-          <div class="label">Staff & Workers</div>
-          <div class="desc">የሰራተኞች ምዝገባ</div>
-        </a>
-        <a class="nav-card" href="#" onclick="chooseType('noncafe');return false;">
-          <div class="emoji">📚</div>
-          <div class="label">Non-Cafe Registration</div>
-          <div class="desc">ያለ ካፌቴሪያ</div>
-        </a>
-        <a class="nav-card" href="#" onclick="chooseType('cafe');return false;">
-          <div class="emoji">🍽️</div>
-          <div class="label">Cafeteria Registration</div>
-          <div class="desc">ከካፌቴሪያ ጋር</div>
-        </a>
+    <div class="card" id="loginCard">
+      <label class="lbl">የAdmin ቁልፍ</label>
+      <input class="input" type="password" id="adminKey" placeholder="Admin key..." />
+      <button class="btn btn-primary btn-block" style="margin-top: 12px;" onclick="loadStats()">ግባ</button>
+    </div>
+
+    <div id="dashboard" style="display: none;">
+      <div class="nav-grid" style="grid-template-columns: repeat(2, 1fr); gap: 8px; margin-bottom: 20px;">
+        <div class="card" style="text-align: center; padding: 16px;">
+          <div style="font-size: 28px; font-weight: 800; color: #06b6d4;" id="s-total">–</div>
+          <div style="font-size: 11px; color: var(--text-2);">ጠቅላላ</div>
+        </div>
+        <div class="card" style="text-align: center; padding: 16px;">
+          <div style="font-size: 28px; font-weight: 800; color: #10b981;" id="s-active">–</div>
+          <div style="font-size: 11px; color: var(--text-2);">የተፈቀዱ</div>
+        </div>
+        <div class="card" style="text-align: center; padding: 16px;">
+          <div style="font-size: 28px; font-weight: 800; color: #f59e0b;" id="s-pending">–</div>
+          <div style="font-size: 11px; color: var(--text-2);">በመጠበቅ</div>
+        </div>
+        <div class="card" style="text-align: center; padding: 16px;">
+          <div style="font-size: 28px; font-weight: 800; color: #ef4444;" id="s-rejected">–</div>
+          <div style="font-size: 11px; color: var(--text-2);">የተከለከሉ</div>
+        </div>
       </div>
-    </div>
 
-    <!-- እርምጃ 2: ስካን -->
-    <div id="step2" style="display: none;">
       <div class="card">
-        <button class="btn btn-ghost" onclick="backToStep1()">← ተመለስ</button>
-        <h2 id="formTitle" style="margin: 16px 0; font-size: 20px;"></h2>
-
-        <!-- የስካን ሁኔታ -->
-        <div id="scanStatus" style="text-align: center; padding: 8px; margin-bottom: 12px; font-size: 13px; color: var(--text-2);">
-          📷 ካሜራ ዝግጁ ነው...
-        </div>
-
-        <!-- QR ስካነር -->
-        <div id="reader" style="margin-bottom: 16px;"></div>
-
-        <button class="btn btn-primary btn-block" id="scanBtn" onclick="startScan()">
-          📷 Fayda QR ስካን ጀምር
-        </button>
-
-        <!-- በእጅ ማስገባት አማራጭ -->
-        <details style="margin-top: 16px;">
-          <summary style="cursor: pointer; color: var(--text-2); font-size: 13px; padding: 8px;">
-            🔧 QR ካልሰራ — በእጅ አስገባ
-          </summary>
-          <div style="margin-top: 12px;">
-            <label style="display:block; margin-bottom: 6px; font-size: 13px; color: var(--text-2);">
-              FAN (የFayda ቁጥር)
-            </label>
-            <input class="input" id="manualFan" placeholder="ለምሳሌ: 1234567890" style="margin-bottom: 12px;" />
-
-            <label style="display:block; margin-bottom: 6px; font-size: 13px; color: var(--text-2);">
-              FIN
-            </label>
-            <input class="input" id="manualFin" placeholder="ለምሳሌ: 9876543210" style="margin-bottom: 12px;" />
-
-            <button class="btn btn-ghost btn-block" onclick="useManualEntry()">
-              ✅ በእጅ ተጠቀም
-            </button>
-          </div>
-        </details>
-
-        <!-- የተማሪው መረጃ (ከQR በራስ-ሰር ይሞላል) -->
-        <div id="studentInfo" style="display: none; margin-top: 20px;">
-          <div class="card" style="background: rgba(16,185,129,0.1); border-color: var(--accent);">
-            <div style="font-size: 13px; color: var(--text-2); margin-bottom: 4px;">የተማሪው መረጃ</div>
-            <div style="font-size: 18px; font-weight: 700; margin-bottom: 8px;" id="dispName">—</div>
-            <div style="font-size: 13px; color: var(--text-1);">FAN: <span id="dispFan">—</span></div>
-            <div style="font-size: 13px; color: var(--text-1);">FIN: <span id="dispFin">—</span></div>
-            <div style="font-size: 13px; color: var(--text-1);">የትውልድ ቀን: <span id="dispBirth">—</span></div>
-          </div>
-
-          <div id="studentFields">
-            <label style="display:block; margin: 16px 0 6px; font-size: 13px; color: var(--text-2);">
-              ኮሌጅ / ትምህርት ቤት
-            </label>
-            <select class="input" id="college" onchange="updateDepartments()">
-              <option value="">-- ምረጥ --</option>
-            </select>
-
-            <label style="display:block; margin: 16px 0 6px; font-size: 13px; color: var(--text-2);">
-              ዲፓርትመንት
-            </label>
-            <select class="input" id="department" disabled>
-              <option value="">-- ኮሌጅ በመጀመሪያ ምረጥ --</option>
-            </select>
-
-            <label style="display:block; margin: 16px 0 6px; font-size: 13px; color: var(--text-2);">
-              ዓመት
-            </label>
-            <select class="input" id="year">
-              <option value="1">1ኛ ዓመት</option>
-              <option value="2">2ኛ ዓመት</option>
-              <option value="3">3ኛ ዓመት</option>
-              <option value="4">4ኛ ዓመት</option>
-              <option value="5">5ኛ ዓመት</option>
-              <option value="6">6ኛ ዓመት</option>
-            </select>
-          </div>
-
-          <button class="btn btn-primary btn-block" onclick="submitRegistration()" style="margin-top: 20px;">
-            ✅ መዝግብ
-          </button>
-        </div>
-
-        <div id="status" class="status hidden"></div>
+        <h3 style="margin-bottom: 12px;">⏳ በመጠበቅ ላይ</h3>
+        <div id="pendingList"></div>
       </div>
+
+      <button class="btn btn-ghost btn-block" onclick="loadStats()">🔄 አድስ</button>
     </div>
 
     <p class="hint"><a href="/" style="color: var(--accent);">← ተመለስ</a></p>
   </div>
 
-  <script type="module">
-    import { ui } from '/js/ui.js';
-    import { QRScanner } from '/js/scanner.js';
+  <script>
+    let adminKey = '';
 
-    const COLLEGES = {
-      'College of Health and Medical Sciences': [
-        'Doctor of Medicine', 'Anesthesia', 'Pharmacy', 'Nursing',
-        'Midwifery', 'Medical Laboratory', 'Psychiatry', 'Public Health',
-        'Environmental Health', 'Biomedical and Behavioral Sciences'
-      ],
-      'College of Technology and Engineering': [
-        'Civil Engineering', 'Electrical and Computer Engineering',
-        'Mechanical Engineering', 'Hydraulic and Water Resources Engineering',
-        'Construction Technology and Management', 'Computer Science', 'Geology'
-      ],
-      'College of Agriculture and Natural Resources': [
-        'Animal Science', 'Plant Science', 'Natural Resource Management',
-        'Agricultural Economics', 'Horticulture', 'Agricultural Engineering',
-        'Food Science and Technology'
-      ],
-      'College of Business and Economics': [
-        'Accounting', 'Economics', 'Business Management',
-        'Cooperatives', 'Public Administration'
-      ],
-      'College of Social Science and Humanities': [
-        'Geography and Environmental Studies', 'History', 'Amharic',
-        'English', 'Foreign Language and Literature', 'Pedagogical Sciences'
-      ],
-      'College of Natural and Computational Science': [
-        'Mathematics', 'Physics', 'Biology', 'Chemistry',
-        'Statistics', 'Computer Science and IT'
-      ],
-      'School of Law': ['Law']
-    };
-
-    let scanner;
-    let currentType = '';
-    let scannedData = {};
-
-    function setScanStatus(text) {
-      const el = document.getElementById('scanStatus');
-      if (el) el.textContent = text;
-    }
-
-    window.chooseType = function(type) {
-      currentType = type;
-      document.getElementById('step1').style.display = 'none';
-      document.getElementById('step2').style.display = 'block';
-
-      const titles = {
-        staff: '👔 Staff & Workers',
-        noncafe: '📚 Non-Cafe Registration',
-        cafe: '🍽️ Cafeteria Registration'
-      };
-      document.getElementById('formTitle').textContent = titles[type];
-
-      document.getElementById('studentFields').style.display = type === 'staff' ? 'none' : 'block';
-
-      const collegeSelect = document.getElementById('college');
-      collegeSelect.innerHTML = '<option value="">-- ምረጥ --</option>';
-      Object.keys(COLLEGES).forEach(name => {
-        const opt = document.createElement('option');
-        opt.value = name;
-        opt.textContent = name;
-        collegeSelect.appendChild(opt);
-      });
-
-      startScan();
-    };
-
-    window.backToStep1 = function() {
-      if (scanner) scanner.stop();
-      document.getElementById('step1').style.display = 'block';
-      document.getElementById('step2').style.display = 'none';
-      document.getElementById('studentInfo').style.display = 'none';
-      ui.hideStatus();
-    };
-
-    window.updateDepartments = function() {
-      const college = document.getElementById('college').value;
-      const deptSelect = document.getElementById('department');
-      deptSelect.innerHTML = '<option value="">-- ምረጥ --</option>';
-
-      if (college && COLLEGES[college]) {
-        COLLEGES[college].forEach(dept => {
-          const opt = document.createElement('option');
-          opt.value = dept;
-          opt.textContent = dept;
-          deptSelect.appendChild(opt);
-        });
-        deptSelect.disabled = false;
-      } else {
-        deptSelect.disabled = true;
-      }
-    };
-
-    window.startScan = async function() {
-      if (!scanner) {
-        scanner = new QRScanner('reader', handleScan);
-      }
-      try {
-        setScanStatus('📷 ካሜራ ዝግጁ ነው... የFayda QR ወደ ካሜራው አቅርብ');
-        await scanner.start();
-      } catch (e) {
-        console.error('Scanner error:', e);
-        ui.showStatus('err', '📷', 'Camera Error', 'ካሜራ ሊከፈት አልቻለም — HTTPS ያስፈልጋል');
-      }
-    };
-
-    async function handleScan(raw) {
-      console.log('📷 QR RAW DATA:', raw);
-      console.log('📏 Length:', raw.length);
-      console.log('📋 First 100 chars:', raw.substring(0, 100));
-
-      await scanner.pause();
-      setScanStatus('⏳ QR ተነብቧል — በመቀየር ላይ...');
+    async function loadStats() {
+      adminKey = document.getElementById('adminKey').value.trim() || localStorage.getItem('adminKey');
+      if (!adminKey) return alert('የAdmin ቁልፍ ያስፈልጋል');
+      localStorage.setItem('adminKey', adminKey);
 
       try {
-        const res = await fetch('/api/parse-fayda', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ raw })
-        });
-        const data = await res.json();
-        console.log('🔍 Parse result:', data);
+        const [statsRes, pendingRes] = await Promise.all([
+          fetch(`/api/stats?key=${encodeURIComponent(adminKey)}`),
+          fetch(`/api/admin/pending?key=${encodeURIComponent(adminKey)}`),
+        ]);
 
-        if (!data.ok) {
-          ui.showStatus('err', '❓', 'Invalid QR', 'ይህ የFayda QR አይደለም ወይም ሊነበብ አልቻለም');
-          setScanStatus('❌ ስህተት — እንደገና ሞክር');
-          setTimeout(() => {
-            scanner.resume();
-            setScanStatus('📷 ደግመህ ሞክር...');
-          }, 2500);
-          return;
-        }
+        if (!statsRes.ok) throw new Error('Unauthorized');
 
-        scannedData = data;
-        document.getElementById('dispName').textContent = data.name || '—';
-        document.getElementById('dispFan').textContent = data.fan || '—';
-        document.getElementById('dispFin').textContent = data.fin || '—';
-        document.getElementById('dispBirth').textContent = data.birthdate || '—';
-        document.getElementById('studentInfo').style.display = 'block';
-        setScanStatus('✅ QR በተሳካ ሁኔታ ተነብቧል');
-        ui.showStatus('ok', '✅', 'QR ተነብቧል!', 'መረጃውን አረጋግጥና መዝግብ');
-        ui.beep(true);
-        await scanner.stop();
-      } catch (e) {
-        console.error('Handle scan error:', e);
-        ui.showStatus('err', '⚠️', 'Error', 'ኔትወርክ ስህተት — እንደገና ሞክር');
-        setTimeout(() => scanner.resume(), 2500);
-      }
-    }
+        const stats = await statsRes.json();
+        const pendingData = await pendingRes.json();
 
-    window.useManualEntry = function() {
-      const fan = document.getElementById('manualFan').value.trim();
-      const fin = document.getElementById('manualFin').value.trim();
+        document.getElementById('loginCard').style.display = 'none';
+        document.getElementById('dashboard').style.display = 'block';
 
-      if (!fan && !fin) {
-        return ui.showStatus('err', '⚠️', 'FAN ወይም FIN ያስፈልጋል', '');
-      }
+        document.getElementById('s-total').textContent = stats.total;
+        document.getElementById('s-active').textContent = stats.active;
+        document.getElementById('s-pending').textContent = stats.pending;
+        document.getElementById('s-rejected').textContent = stats.rejected;
 
-      scannedData = { fan, fin, name: '', birthdate: '' };
-      document.getElementById('dispName').textContent = '(በእጅ የገባ)';
-      document.getElementById('dispFan').textContent = fan || '—';
-      document.getElementById('dispFin').textContent = fin || '—';
-      document.getElementById('dispBirth').textContent = '—';
-      document.getElementById('studentInfo').style.display = 'block';
-      ui.showStatus('ok', '✅', 'ተቀብሏል', 'ቀሪውን መረጃ ሙላ');
-    };
-
-    window.submitRegistration = async function() {
-      const payload = {
-        type: currentType,
-        fan: scannedData.fan || '',
-        fin: scannedData.fin || '',
-        name: scannedData.name || '',
-        birthdate: scannedData.birthdate || '',
-        college: document.getElementById('college')?.value || '',
-        department: document.getElementById('department')?.value || '',
-        year: document.getElementById('year')?.value || ''
-      };
-
-      if (!payload.fan && !payload.fin) {
-        return ui.showStatus('err', '⚠️', 'QR ያስፈልጋል', 'በመጀመሪያ QR ስካን አድርግ');
-      }
-
-      if (currentType !== 'staff' && (!payload.college || !payload.department)) {
-        return ui.showStatus('err', '⚠️', 'ኮሌጅ እና ዲፓርትመንት ያስፈልጋል', '');
-      }
-
-      ui.showStatus('warn', '⏳', 'በመመዝገብ ላይ...', 'እባክህ ጠብቅ');
-
-      try {
-        const res = await fetch('/api/register', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload)
-        });
-        const data = await res.json();
-
-        if (data.ok) {
-          ui.showStatus('ok', '✅', 'ተመዝግቧል!', data.message);
-          ui.beep(true);
-          ui.speak('Registration successful');
-          setTimeout(() => backToStep1(), 4000);
+        const pendingList = document.getElementById('pendingList');
+        if (pendingData.pending && pendingData.pending.length) {
+          pendingList.innerHTML = pendingData.pending.map(p => `
+            <div style="padding: 12px; border-bottom: 1px solid var(--border); display: flex; gap: 8px; align-items: center;">
+              <div style="flex: 1;">
+                <div style="font-weight: 600; font-size: 14px;">${p.name || '—'}</div>
+                <div style="font-size: 11px; color: var(--text-2); margin-top: 4px;">
+                  ${p.userType || ''} · ${p.phone || ''}
+                </div>
+              </div>
+              <button class="btn btn-primary" style="padding: 6px 12px; font-size: 12px;" onclick="approve(${p.rowIndex})">✓</button>
+              <button class="btn btn-ghost" style="padding: 6px 12px; font-size: 12px;" onclick="reject(${p.rowIndex})">✕</button>
+            </div>
+          `).join('');
         } else {
-          ui.showStatus('err', '❌', 'ምዝገባ አልተሳካም', data.message);
-          ui.beep(false);
+          pendingList.innerHTML = '<div style="text-align: center; color: var(--text-2); padding: 20px;">✅ ሁሉም ተረጋግጧል</div>';
         }
       } catch (e) {
-        console.error('Submit error:', e);
-        ui.showStatus('err', '⚠️', 'Network Error', 'ኔትወርክ ስህተት');
+        alert('ስህተት: ' + e.message);
       }
-    };
+    }
+
+    async function approve(rowIndex) {
+      await fetch('/api/admin/approve', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ key: adminKey, rowIndex, decision: 'approve' }),
+      });
+      loadStats();
+    }
+
+    async function reject(rowIndex) {
+      if (!confirm('ማስቀረት ትፈልጋለህ?')) return;
+      await fetch('/api/admin/approve', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ key: adminKey, rowIndex, decision: 'reject' }),
+      });
+      loadStats();
+    }
+
+    const saved = localStorage.getItem('adminKey');
+    if (saved) { document.getElementById('adminKey').value = saved; loadStats(); }
   </script>
 </body>
 </html>
