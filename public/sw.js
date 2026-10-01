@@ -1,5 +1,5 @@
-const CACHE = 'dilla-v1';
-const ASSETS = ['/', '/gateway', '/cafeteria', '/admin', '/css/app.css', '/js/api.js', '/js/scanner.js', '/js/ui.js', '/manifest.json'];
+const CACHE = 'dilla-v2';
+const ASSETS = ['/', '/gateway', '/cafeteria', '/admin', '/register', '/css/app.css', '/js/api.js', '/js/scanner.js', '/js/ui.js', '/js/face-helper.js', '/manifest.json'];
 
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(ASSETS)).then(() => self.skipWaiting()));
