@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>Sign in with Fayda · Dilla Verifier</title>
+  <meta name="theme-color" content="#020617" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/css/app.css" />
+  <style>
+    .fayda-logo {
+      width: 120px; height: 120px; margin: 0 auto 20px;
+      border-radius: 24px;
+      background: linear-gradient(135deg, #10b981, #06b6d4);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 56px; box-shadow: 0 10px 40px rgba(16,185,129,0.3);
+    }
+    .fayda-btn {
+      background: linear-gradient(135deg, #10b981, #06b6d4);
+      color: white; border: none;
+      padding: 18px 24px; border-radius: 16px;
+      font-size: 16px; font-weight: 700;
+      width: 100%; cursor: pointer;
+      transition: all 0.2s;
+      display: flex; align-items: center; justify-content: center; gap: 10px;
+    }
+    .fayda-btn:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(16,185,129,0.4); }
+    .step-box {
+      background: rgba(30,41,59,0.5);
+      border: 1px solid var(--border);
+      border-radius: 14px; padding: 16px;
+      margin-bottom: 12px;
+      display: flex; gap: 12px; align-items: flex-start;
+    }
+    .step-box .num {
+      flex-shrink: 0;
+      width: 28px; height: 28px; border-radius: 50%;
+      background: linear-gradient(135deg, #10b981, #06b6d4);
+      color: white; font-size: 13px; font-weight: 700;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .step-box .text { font-size: 14px; line-height: 1.5; color: var(--text-1); }
+    .step-box .text b { color: var(--text-0); }
+    .info-box {
+      background: rgba(16,185,129,0.1);
+      border: 1px solid var(--accent);
+      border-radius: 14px; padding: 16px;
+      margin-top: 16px;
+    }
+    .info-box .row {
+      display: flex; justify-content: space-between;
+      padding: 8px 0; border-bottom: 1px solid rgba(16,185,129,0.2);
+      font-size: 14px;
+    }
+    .info-box .row:last-child { border-bottom: none; }
+    .info-box .label { color: var(--text-2); }
+    .info-box .value { color: var(--text-0); font-weight: 600; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>🪪 Sign in with Fayda</h1>
+      <p>Dilla University Access Verification</p>
+    </div>
+
+    <!-- Step 1: Start -->
+    <div id="step1">
+      <div class="card">
+        <div class="fayda-logo">🇪🇹</div>
+        <h2 style="text-align: center; margin-bottom: 8px; font-size: 20px;">Verify with Fayda</h2>
+        <p style="text-align: center; color: var(--text-2); font-size: 14px; margin-bottom: 24px;">
+          Verify your identity through Ethiopia's National ID system
+        </p>
+
+        <button class="fayda-btn" onclick="openFaydaPortal()">
+          🪪 Sign in with Fayda
+        </button>
+
+        <div style="margin-top: 24px;">
+          <div class="step-box">
+            <div class="num">1</div>
+            <div class="text">Click <b>Sign in with Fayda</b> above</div>
+          </div>
+          <div class="step-box">
+            <div class="num">2</div>
+            <div class="text">You will be redirected to the <b>Fayda verification portal</b></div>
+          </div>
+          <div class="step-box">
+            <div class="num">3</div>
+            <div class="text">Verify with <b>OTP</b> sent to your registered phone</div>
+          </div>
+          <div class="step-box">
+            <div class="num">4</div>
+            <div class="text">Return here with your <b>FAN</b> and <b>FIN</b> numbers</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Step 2: FAN/FIN Entry -->
+    <div id="step2" style="display: none;">
+      <div class="card">
+        <button class="btn btn-ghost" onclick="backToStep1()">← Back</button>
+        <h2 style="margin: 16px 0 8px; font-size: 20px;">Enter Fayda Numbers</h2>
+        <p style="color: var(--text-2); font-size: 14px; margin-bottom: 20px;">
+          Enter the FAN and FIN you received from the Fayda portal
+        </p>
+
+        <label class="lbl" style="display: block; margin-bottom: 6px; font-size: 13px; color: var(--text-2);">FAN (Fayda Application Number)</label>
+        <input class="input" id="fanInput" placeholder="e.g. 1234567890" style="margin-bottom: 16px;" />
+
+        <label class="lbl" style="display: block; margin-bottom: 6px; font-size: 13px; color: var(--text-2);">FIN (Fayda Identification Number)</label>
+        <input class="input" id="finInput" placeholder="e.g. 9876543210" style="margin-bottom: 20px;" />
+
+        <button class="btn btn-primary btn-block" onclick="verifyFayda()" style="padding: 16px;">
+          ✅ Verify & Continue
+        </button>
+
+        <div id="verifyStatus" style="text-align: center; padding: 12px; font-size: 13px; color: var(--text-2);"></div>
+      </div>
+    </div>
+
+    <!-- Step 3: Verified -->
+    <div id="step3" style="display: none;">
+      <div class="card">
+        <div style="text-align: center; margin-bottom: 20px;">
+          <div style="font-size: 64px;">✅</div>
+          <h2 style="margin: 12px 0 4px; font-size: 22px; color: var(--accent);">Verified!</h2>
+          <p style="color: var(--text-2); font-size: 14px;">You are a Dilla University member</p>
+        </div>
+
+        <div class="info-box" id="userInfo"></div>
+
+        <div style="margin-top: 20px; display: grid; gap: 10px;">
+          <a class="btn btn-primary btn-block" href="/cafeteria" style="padding: 16px;">
+            🍽️ Go to Cafeteria
+          </a>
+          <a class="btn btn-ghost btn-block" href="/">🏠 Back to Home</a>
+        </div>
+      </div>
+    </div>
+
+    <p class="hint"><a href="/" style="color: var(--accent);">← Back to Home</a></p>
+  </div>
+
+  <script type="module">
+    import { ui } from '/js/ui.js';
+
+    const FAYDA_PORTAL_URL = 'https://id.gov.et/verify';
+
+    let verifiedUser = null;
+
+    window.openFaydaPortal = function() {
+      // Open Fayda portal in new tab (simulated flow)
+      // In production, use real Fayda OAuth endpoint with callback URL
+      const w = window.open(FAYDA_PORTAL_URL, '_blank', 'noopener,noreferrer');
+
+      // If popup blocked, show message
+      if (!w) {
+        ui.toast?.('Please allow popups for this site');
+      }
+
+      // Move to step 2 after short delay
+      setTimeout(() => {
+        document.getElementById('step1').style.display = 'none';
+        document.getElementById('step2').style.display = 'block';
+      }, 800);
+    };
+
+    window.backToStep1 = function() {
+      document.getElementById('step1').style.display = 'block';
+      document.getElementById('step2').style.display = 'none';
+      document.getElementById('step3').style.display = 'none';
+    };
+
+    window.verifyFayda = async function() {
+      const fan = document.getElementById('fanInput').value.trim();
+      const fin = document.getElementById('finInput').value.trim();
+
+      if (!fan && !fin) {
+        document.getElementById('verifyStatus').innerHTML =
+          '<span style="color: var(--danger);">FAN or FIN is required</span>';
+        return;
+      }
+
+      document.getElementById('verifyStatus').textContent = '⏳ Verifying...';
+
+      try {
+        const res = await fetch('/api/verify', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ raw: fan || fin, mode: 'gate', gate: 'signin' })
+        });
+        const data = await res.json();
+
+        if (data.allowed && data.student) {
+          verifiedUser = data.student;
+          showVerified(data.student);
+        } else {
+          const messages = {
+            not_registered: 'This Fayda ID is not registered at Dilla University',
+            not_approved: 'Your registration is pending admin approval',
+            invalid_qr: 'Invalid FAN/FIN format',
+          };
+          document.getElementById('verifyStatus').innerHTML =
+            `<span style="color: var(--danger);">❌ ${messages[data.reason] || data.message || 'Verification failed'}</span>`;
+          ui.beep(false);
+        }
+      } catch (e) {
+        document.getElementById('verifyStatus').innerHTML =
+          '<span style="color: var(--danger);">❌ Network error — try again</span>';
+      }
+    };
+
+    function showVerified(student) {
+      ui.beep(true);
+      ui.speak('Verified. Welcome to Dilla University');
+
+      document.getElementById('step2').style.display = 'none';
+      document.getElementById('step3').style.display = 'block';
+
+      document.getElementById('userInfo').innerHTML = `
+        <div class="row"><span class="label">Name</span><span class="value">${student.name || '—'}</span></div>
+        <div class="row"><span class="label">FAN</span><span class="value">${student.fan || '—'}</span></div>
+        <div class="row"><span class="label">FIN</span><span class="value">${student.fin || '—'}</span></div>
+        <div class="row"><span class="label">Type</span><span class="value">${student.userType || '—'}</span></div>
+        <div class="row"><span class="label">Department</span><span class="value">${student.department || '—'}</span></div>
+        <div class="row"><span class="label">Year</span><span class="value">${student.year || '—'}</span></div>
+      `;
+    }
+  </script>
+</body>
+</html>
