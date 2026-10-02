@@ -1,6 +1,3 @@
-// ============================================================
-// Face API Helper
-// ============================================================
 export const faceHelper = {
   modelsLoaded: false,
   MODEL_URL: 'https://cdn.jsdelivr.net/gh/justadudewhohacks/face-api.js@0.22.2/weights',
@@ -27,14 +24,5 @@ export const faceHelper = {
 
     if (!detection) return null;
     return Array.from(detection.descriptor);
-  },
-
-  async checkFaceQuality(videoElement) {
-    const detection = await faceapi
-      .detectSingleFace(videoElement, new faceapi.TinyFaceDetectorOptions())
-      .withFaceLandmarks();
-
-    if (!detection) return { ok: false, reason: 'no_face' };
-    return { ok: true };
   },
 };
