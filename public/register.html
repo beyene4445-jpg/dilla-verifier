@@ -1,240 +1,214 @@
 <!DOCTYPE html>
-<html lang="am">
+<html lang="en">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-  <title>ምዝገባ · Dilla Verifier</title>
+  <title>Registration · Dilla Verifier</title>
   <meta name="theme-color" content="#020617" />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="/css/app.css" />
-  <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"></script>
   <style>
     .lbl {
-      display: block;
-      margin-bottom: 6px;
-      font-size: 13px;
-      color: var(--text-2);
-      font-weight: 500;
+      display: block; margin-bottom: 6px;
+      font-size: 13px; color: var(--text-2); font-weight: 500;
     }
     .step-title {
-      margin: 24px 0 12px;
-      font-size: 16px;
-      font-weight: 700;
-      color: var(--accent);
-      display: flex;
-      align-items: center;
-      gap: 8px;
+      margin: 24px 0 12px; font-size: 16px; font-weight: 700;
+      color: var(--accent); display: flex; align-items: center; gap: 8px;
     }
     .step-title .num {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      width: 28px;
-      height: 28px;
-      border-radius: 50%;
+      display: inline-flex; align-items: center; justify-content: center;
+      width: 28px; height: 28px; border-radius: 50%;
       background: linear-gradient(135deg, #10b981, #06b6d4);
-      color: white;
-      font-size: 14px;
-    }
-    .video-container {
-      background: #000;
-      border-radius: 12px;
-      overflow: hidden;
-      margin-bottom: 12px;
-      position: relative;
-      aspect-ratio: 4/3;
-    }
-    .video-container video {
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-      display: block;
-    }
-    .face-guide {
-      position: absolute;
-      inset: 0;
-      pointer-events: none;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
-    .face-guide .oval {
-      width: 55%;
-      height: 75%;
-      border: 3px dashed rgba(16, 185, 129, 0.6);
-      border-radius: 50%;
-      box-shadow: 0 0 30px rgba(16, 185, 129, 0.3);
-    }
-    .capture-btn {
-      background: linear-gradient(135deg, #10b981, #06b6d4);
-      color: white;
-      border: none;
-      padding: 14px;
-      border-radius: 12px;
-      font-weight: 700;
-      font-size: 15px;
-      cursor: pointer;
-      width: 100%;
-      transition: all 0.2s;
-    }
-    .capture-btn:disabled {
-      opacity: 0.5;
-      cursor: not-allowed;
-    }
-    .capture-btn.captured {
-      background: linear-gradient(135deg, #10b981, #059669);
+      color: white; font-size: 14px; font-weight: 700;
     }
     .file-input {
-      width: 100%;
-      padding: 12px;
+      width: 100%; padding: 12px;
       background: rgba(15, 23, 42, 0.7);
       border: 1px solid var(--border);
       border-radius: 12px;
-      color: var(--text-0);
-      font-size: 14px;
-      cursor: pointer;
+      color: var(--text-0); font-size: 14px; cursor: pointer;
     }
     .file-input::file-selector-button {
       background: linear-gradient(135deg, #10b981, #06b6d4);
-      color: white;
-      border: none;
-      padding: 8px 16px;
-      border-radius: 8px;
-      font-weight: 600;
-      cursor: pointer;
-      margin-right: 12px;
+      color: white; border: none;
+      padding: 8px 16px; border-radius: 8px;
+      font-weight: 600; cursor: pointer; margin-right: 12px;
     }
     .preview-img {
-      max-width: 100%;
-      border-radius: 12px;
-      margin-top: 12px;
+      max-width: 100%; border-radius: 12px; margin-top: 12px;
       border: 2px solid var(--accent);
     }
     .badge-success {
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
+      display: inline-flex; align-items: center; gap: 6px;
       padding: 6px 12px;
       background: rgba(16, 185, 129, 0.15);
       border: 1px solid var(--accent);
       border-radius: 999px;
-      font-size: 12px;
-      color: #6ee7b7;
-      font-weight: 600;
-      margin-top: 8px;
+      font-size: 12px; color: #6ee7b7; font-weight: 600; margin-top: 8px;
     }
-    .divider {
-      height: 1px;
-      background: var(--border);
-      margin: 24px 0;
+    .divider { height: 1px; background: var(--border); margin: 24px 0; }
+    .fayda-logo {
+      width: 80px; height: 80px; margin: 0 auto 16px;
+      border-radius: 20px;
+      background: linear-gradient(135deg, #10b981, #06b6d4);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 40px;
+      box-shadow: 0 10px 30px rgba(16, 185, 129, 0.3);
     }
+    .step-box {
+      background: rgba(30, 41, 59, 0.5);
+      border: 1px solid var(--border);
+      border-radius: 12px; padding: 12px 14px;
+      margin-bottom: 10px;
+      display: flex; gap: 12px; align-items: flex-start;
+    }
+    .step-box .n {
+      flex-shrink: 0;
+      width: 24px; height: 24px; border-radius: 50%;
+      background: linear-gradient(135deg, #10b981, #06b6d4);
+      color: white; font-size: 12px; font-weight: 700;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .step-box .t { font-size: 13px; line-height: 1.5; color: var(--text-1); }
+    .info-box {
+      background: rgba(16, 185, 129, 0.1);
+      border: 1px solid var(--accent);
+      border-radius: 14px; padding: 16px; margin-top: 16px;
+    }
+    .info-box .row {
+      display: flex; justify-content: space-between;
+      padding: 6px 0; font-size: 14px;
+    }
+    .info-box .row .k { color: var(--text-2); }
+    .info-box .row .v { color: var(--text-0); font-weight: 600; }
   </style>
 </head>
 <body>
   <div class="container">
     <div class="header">
-      <h1>📝 ምዝገባ</h1>
-      <p>Registration · Dilla University</p>
+      <h1>📝 Registration</h1>
+      <p>Dilla University</p>
     </div>
 
-    <!-- እርምጃ 1: ዓይነት መምረጥ -->
+    <!-- STEP 1: Choose type -->
     <div id="step1">
       <div class="nav-grid">
         <a class="nav-card" href="#" onclick="chooseType('staff');return false;">
           <div class="emoji">👔</div>
           <div class="label">Staff & Workers</div>
-          <div class="desc">የሰራተኞች ምዝገባ</div>
+          <div class="desc">University employees</div>
         </a>
         <a class="nav-card" href="#" onclick="chooseType('noncafe');return false;">
           <div class="emoji">📚</div>
-          <div class="label">Non-Cafe</div>
-          <div class="desc">ያለ ካፌቴሪያ</div>
+          <div class="label">Non-Cafeteria</div>
+          <div class="desc">Students without meal access</div>
         </a>
         <a class="nav-card" href="#" onclick="chooseType('cafe');return false;">
           <div class="emoji">🍽️</div>
           <div class="label">Cafeteria</div>
-          <div class="desc">ከካፌቴሪያ · National ID ያስፈልጋል</div>
+          <div class="desc">Students with meal access · National ID required</div>
         </a>
       </div>
     </div>
 
-    <!-- እርምጃ 2: ቅጽ -->
+    <!-- STEP 2: Form -->
     <div id="step2" style="display: none;">
       <div class="card">
-        <button class="btn btn-ghost" onclick="backToStep1()">← ተመለስ</button>
+        <button class="btn btn-ghost" onclick="backToStep1()">← Back</button>
         <h2 id="formTitle" style="margin: 16px 0; font-size: 20px;"></h2>
 
-        <!-- ============ ክፍል 1: የFayda QR ============ -->
+        <!-- ============ 1. Sign in with Fayda ============ -->
         <div class="step-title">
           <span class="num">1</span>
-          <span>የFayda QR ስካን</span>
+          <span>Sign in with Fayda</span>
         </div>
 
-        <div id="reader" style="border-radius: 12px; overflow: hidden; background: #000; min-height: 280px; margin-bottom: 12px;"></div>
+        <div id="faydaStart">
+          <div class="fayda-logo">🇪🇹</div>
+          <p style="text-align: center; color: var(--text-2); font-size: 13px; margin-bottom: 16px;">
+            Verify your identity through Ethiopia's National ID
+          </p>
 
-        <button class="btn btn-primary btn-block" onclick="startScan()" style="margin-bottom: 12px;">
-          📷 Fayda QR ስካን ጀምር
-        </button>
+          <button class="btn btn-primary btn-block" onclick="openFaydaPortal()" style="padding: 16px; margin-bottom: 16px;">
+            🪪 Sign in with Fayda
+          </button>
 
-        <div id="scanStatus" style="text-align: center; padding: 8px; font-size: 13px; color: var(--text-2);">
-          ⏳ ዝግጁ ነው
+          <div class="step-box"><div class="n">1</div><div class="t">Click <b>Sign in with Fayda</b></div></div>
+          <div class="step-box"><div class="n">2</div><div class="t">You'll be redirected to the <b>Fayda portal</b></div></div>
+          <div class="step-box"><div class="n">3</div><div class="t">Verify with <b>OTP</b> sent to your phone</div></div>
+          <div class="step-box"><div class="n">4</div><div class="t">Return here and enter your <b>FAN</b> and <b>FIN</b></div></div>
         </div>
 
-        <details style="margin-top: 12px;">
-          <summary style="cursor: pointer; color: var(--text-2); font-size: 13px; padding: 8px;">
-            🔧 QR ካልሰራ — በእጅ አስገባ
-          </summary>
-          <div style="margin-top: 12px;">
-            <input class="input" id="manualFan" placeholder="FAN (የFayda ቁጥር)" style="margin-bottom: 8px;" />
-            <input class="input" id="manualFin" placeholder="FIN" style="margin-bottom: 8px;" />
-            <button class="btn btn-ghost btn-block" onclick="useManualEntry()">✅ ተጠቀም</button>
+        <!-- FAN/FIN entry -->
+        <div id="faydaEntry" style="display: none;">
+          <label class="lbl">FAN (Fayda Application Number)</label>
+          <input class="input" id="fanInput" placeholder="e.g. 1234567890" style="margin-bottom: 12px;" />
+
+          <label class="lbl">FIN (Fayda Identification Number)</label>
+          <input class="input" id="finInput" placeholder="e.g. 9876543210" style="margin-bottom: 16px;" />
+
+          <button class="btn btn-primary btn-block" onclick="verifyFayda()" style="padding: 14px;">
+            ✅ Verify FAN/FIN
+          </button>
+
+          <div id="verifyStatus" style="text-align: center; padding: 10px; font-size: 13px; color: var(--text-2);"></div>
+        </div>
+
+        <!-- Verified display -->
+        <div id="verifiedBox" style="display: none;">
+          <div class="info-box">
+            <div style="font-size: 12px; color: var(--text-2); margin-bottom: 8px;">
+              ✅ Identity Verified
+            </div>
+            <div class="row"><span class="k">Name</span><span class="v" id="verifiedName">—</span></div>
+            <div class="row"><span class="k">FAN</span><span class="v" id="verifiedFan">—</span></div>
+            <div class="row"><span class="k">FIN</span><span class="v" id="verifiedFin">—</span></div>
           </div>
-        </details>
+        </div>
 
         <div class="divider"></div>
 
-        <!-- ============ ክፍል 2: የግል መረጃ ============ -->
+        <!-- ============ 2. Personal Info ============ -->
         <div class="step-title">
           <span class="num">2</span>
-          <span>የግል መረጃ</span>
+          <span>Personal Information</span>
         </div>
 
-        <label class="lbl">ሙሉ ስም *</label>
-        <input class="input" id="fName" style="margin-bottom: 12px;" placeholder="ሙሉ ስም" />
+        <label class="lbl">Full Name *</label>
+        <input class="input" id="fName" style="margin-bottom: 12px;" placeholder="Full name" />
 
-        <label class="lbl">የዩኒቨርሲቲ ID ቁጥር</label>
-        <input class="input" id="fUniversityId" style="margin-bottom: 12px;" placeholder="ለምሳሌ: DU/12345/2016" />
+        <label class="lbl">University ID</label>
+        <input class="input" id="fUniversityId" style="margin-bottom: 12px;" placeholder="e.g. DU/12345/2016" />
 
-        <!-- የተማሪ መስኮች -->
         <div id="studentOnly">
-          <label class="lbl">ኮሌጅ</label>
+          <label class="lbl">College</label>
           <select class="input" id="fCollege" onchange="updateDepartments()" style="margin-bottom: 12px;">
-            <option value="">-- ኮሌጅ ምረጥ --</option>
+            <option value="">-- Select College --</option>
           </select>
 
-          <label class="lbl">ዲፓርትመንት</label>
+          <label class="lbl">Department</label>
           <select class="input" id="fDepartment" disabled style="margin-bottom: 12px;">
-            <option value="">-- ኮሌጅ በመጀመሪያ ምረጥ --</option>
+            <option value="">-- Select College first --</option>
           </select>
 
-          <label class="lbl">ዓመት</label>
+          <label class="lbl">Year</label>
           <select class="input" id="fYear" style="margin-bottom: 12px;">
-            <option value="1">1ኛ ዓመት</option>
-            <option value="2">2ኛ ዓመት</option>
-            <option value="3">3ኛ ዓመት</option>
-            <option value="4">4ኛ ዓመት</option>
-            <option value="5">5ኛ ዓመት</option>
-            <option value="6">6ኛ ዓመት</option>
+            <option value="1">Year 1</option>
+            <option value="2">Year 2</option>
+            <option value="3">Year 3</option>
+            <option value="4">Year 4</option>
+            <option value="5">Year 5</option>
+            <option value="6">Year 6</option>
           </select>
         </div>
 
-        <label class="lbl">ስልክ ቁጥር *</label>
-        <input class="input" id="fPhone" placeholder="09xxxxxxxx ወይም +2519xxxxxxxx" style="margin-bottom: 12px;" />
+        <label class="lbl">Phone Number *</label>
+        <input class="input" id="fPhone" placeholder="09xxxxxxxx" style="margin-bottom: 12px;" />
 
-        <label class="lbl">ክልል *</label>
+        <label class="lbl">Region *</label>
         <select class="input" id="fRegion" style="margin-bottom: 12px;">
-          <option value="">-- ክልል ምረጥ --</option>
+          <option value="">-- Select Region --</option>
           <option>Addis Ababa</option>
           <option>Afar</option>
           <option>Amhara</option>
@@ -251,87 +225,52 @@
           <option>Tigray</option>
         </select>
 
-        <label class="lbl">ጾታ</label>
+        <label class="lbl">Gender</label>
         <select class="input" id="fGender" style="margin-bottom: 12px;">
-          <option value="M">ወንድ</option>
-          <option value="F">ሴት</option>
+          <option value="M">Male</option>
+          <option value="F">Female</option>
         </select>
 
-        <label class="lbl">የትውልድ ቀን</label>
+        <label class="lbl">Date of Birth</label>
         <input class="input" id="fBirthdate" type="date" style="margin-bottom: 12px;" />
 
-        <div class="divider"></div>
-
-        <!-- ============ ክፍል 3: የፊት ምዝገባ ============ -->
-        <div class="step-title">
-          <span class="num">3</span>
-          <span>የፊት ምዝገባ *</span>
-        </div>
-
-        <div class="video-container">
-          <video id="video" autoplay muted playsinline></video>
-          <div class="face-guide">
-            <div class="oval"></div>
-          </div>
-        </div>
-
-        <button class="capture-btn" id="captureBtn" onclick="captureFace()">
-          📸 ፊቴን አንሳ
-        </button>
-
-        <div id="faceStatus" style="text-align: center; padding: 12px; font-size: 13px; color: var(--text-2);">
-          ፊትዎን በክብው ውስጥ ያስገቡ
-        </div>
-
-        <div id="faceSuccess" style="display: none; text-align: center;">
-          <div class="badge-success">
-            ✅ ፊት በተሳካ ሁኔታ ተመዝግቧል
-          </div>
-        </div>
-
-        <!-- ============ ክፍል 4: National ID (ካፌቴሪያ ብቻ) ============ -->
+        <!-- ============ 3. National ID (Cafeteria only) ============ -->
         <div id="nationalIdSection" style="display: none;">
           <div class="divider"></div>
           <div class="step-title">
-            <span class="num">4</span>
-            <span>የNational ID ፎቶ *</span>
+            <span class="num">3</span>
+            <span>National ID Photo *</span>
           </div>
 
           <p style="color: var(--text-2); font-size: 13px; margin-bottom: 12px;">
-            ለካፌቴሪያ ምዝገባ — የFayda/National ID ካርድዎን ፎቶ ያስገቡ።
+            Required for cafeteria registration. Upload a clear photo of your Fayda / National ID.
           </p>
 
           <input type="file" id="fNationalId" accept="image/*" class="file-input" />
-
           <div id="nationalIdPreview"></div>
-
           <div id="nationalIdSuccess" style="display: none; text-align: center;">
-            <div class="badge-success">
-              ✅ የNational ID ፎቶ ተጭኗል
-            </div>
+            <div class="badge-success">✅ National ID uploaded</div>
           </div>
         </div>
 
         <div class="divider"></div>
 
-        <!-- ============ ማስገባት ============ -->
         <button class="btn btn-primary btn-block" onclick="submitRegistration()" style="padding: 18px; font-size: 16px;">
-          ✅ መዝግብ
+          ✅ Register
         </button>
 
         <div id="status" class="status hidden"></div>
       </div>
     </div>
 
-    <p class="hint"><a href="/" style="color: var(--accent);">← ተመለስ</a></p>
+    <p class="hint"><a href="/" style="color: var(--accent);">← Back to Home</a></p>
   </div>
 
   <script type="module">
     import { ui } from '/js/ui.js';
-    import { QRScanner } from '/js/scanner.js';
-    import { faceHelper } from '/js/face-helper.js';
 
-    // ============ የDilla University ኮሌጆች ============
+    const FAYDA_PORTAL_URL = 'https://id.gov.et/verify';
+
     const COLLEGES = {
       'College of Health and Medical Sciences': [
         'Doctor of Medicine', 'Anesthesia', 'Pharmacy', 'Nursing',
@@ -363,34 +302,30 @@
       'School of Law': ['Law']
     };
 
-    let scanner;
     let currentType = '';
-    let scannedData = {};
-    let faceDescriptor = null;
+    let verifiedData = { fan: '', fin: '', name: '' };
     let nationalIdBase64 = '';
+    let isVerified = false;
 
-    // ============ አማራጭ ዓይነት መምረጥ ============
-    window.chooseType = async function(type) {
+    // ============ Choose registration type ============
+    window.chooseType = function(type) {
       currentType = type;
       document.getElementById('step1').style.display = 'none';
       document.getElementById('step2').style.display = 'block';
 
       const titles = {
-        staff: '👔 Staff & Workers',
-        noncafe: '📚 Non-Cafe Registration',
+        staff: '👔 Staff & Workers Registration',
+        noncafe: '📚 Non-Cafeteria Registration',
         cafe: '🍽️ Cafeteria Registration'
       };
-      document.getElementById('formTitle').textContent = titles[type] || 'ምዝገባ';
+      document.getElementById('formTitle').textContent = titles[type] || 'Registration';
 
-      // የተማሪ መስኮች ለ Staff አይታዩም
       document.getElementById('studentOnly').style.display = type === 'staff' ? 'none' : 'block';
-
-      // የNational ID ክፍል (ካፌቴሪያ ብቻ)
       document.getElementById('nationalIdSection').style.display = type === 'cafe' ? 'block' : 'none';
 
-      // ኮሌጆችን ሙላ
+      // Populate colleges
       const collegeSelect = document.getElementById('fCollege');
-      collegeSelect.innerHTML = '<option value="">-- ኮሌጅ ምረጥ --</option>';
+      collegeSelect.innerHTML = '<option value="">-- Select College --</option>';
       Object.keys(COLLEGES).forEach(name => {
         const opt = document.createElement('option');
         opt.value = name;
@@ -398,33 +333,14 @@
         collegeSelect.appendChild(opt);
       });
 
-      // የFayda QR ስካነር ጀምር
-      setTimeout(() => startScan(), 300);
-
-      // የፊት ካሜራ ጀምር
-      try {
-        await faceHelper.loadModels();
-        const video = document.getElementById('video');
-        const stream = await navigator.mediaDevices.getUserMedia({
-          video: { facingMode: 'user', width: 640, height: 480 },
-        });
-        video.srcObject = stream;
-        document.getElementById('faceStatus').textContent = '✅ ካሜራ ዝግጁ ነው — "ፊቴን አንሳ" ይጫኑ';
-      } catch (e) {
-        console.error('Camera error:', e);
-        document.getElementById('faceStatus').textContent = '❌ ካሜራ ሊከፈት አልቻለም — HTTPS ያስፈልጋል';
-      }
-
-      // የNational ID ፕሪቪው
+      // National ID preview
       document.getElementById('fNationalId').addEventListener('change', (e) => {
         const file = e.target.files[0];
         if (!file) return;
-
         if (file.size > 5 * 1024 * 1024) {
-          alert('ፎቶው ከ5MB መብለጥ የለበትም');
+          alert('Photo must be smaller than 5MB');
           return;
         }
-
         const reader = new FileReader();
         reader.onload = (ev) => {
           nationalIdBase64 = ev.target.result;
@@ -437,17 +353,71 @@
     };
 
     window.backToStep1 = function() {
-      if (scanner) scanner.stop();
       document.getElementById('step1').style.display = 'block';
       document.getElementById('step2').style.display = 'none';
       document.getElementById('status').className = 'status hidden';
     };
 
-    // ============ ዲፓርትመንቶች ============
+    // ============ Fayda flow ============
+    window.openFaydaPortal = function() {
+      window.open(FAYDA_PORTAL_URL, '_blank', 'noopener,noreferrer');
+      document.getElementById('faydaStart').style.display = 'none';
+      document.getElementById('faydaEntry').style.display = 'block';
+      ui.beep(true);
+    };
+
+    window.verifyFayda = async function() {
+      const fan = document.getElementById('fanInput').value.trim();
+      const fin = document.getElementById('finInput').value.trim();
+      const status = document.getElementById('verifyStatus');
+
+      if (!fan && !fin) {
+        status.innerHTML = '<span style="color: var(--danger);">FAN or FIN is required</span>';
+        return;
+      }
+
+      status.textContent = '⏳ Verifying with Dilla University database...';
+
+      try {
+        const res = await fetch('/api/parse-fayda', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ raw: fan || fin }),
+        });
+        const data = await res.json();
+
+        if (!data.ok) {
+          status.innerHTML = '<span style="color: var(--danger);">❌ Invalid FAN/FIN</span>';
+          ui.beep(false);
+          return;
+        }
+
+        verifiedData = data;
+        isVerified = true;
+
+        // Auto-fill personal info
+        if (data.name) document.getElementById('fName').value = data.name;
+
+        // Show verified box
+        document.getElementById('faydaEntry').style.display = 'none';
+        document.getElementById('verifiedBox').style.display = 'block';
+        document.getElementById('verifiedName').textContent = data.name || '—';
+        document.getElementById('verifiedFan').textContent = data.fan || '—';
+        document.getElementById('verifiedFin').textContent = data.fin || '—';
+
+        status.textContent = '';
+        ui.beep(true);
+        ui.speak('Identity verified');
+      } catch (e) {
+        status.innerHTML = '<span style="color: var(--danger);">❌ Network error</span>';
+      }
+    };
+
+    // ============ Departments ============
     window.updateDepartments = function() {
       const college = document.getElementById('fCollege').value;
       const deptSelect = document.getElementById('fDepartment');
-      deptSelect.innerHTML = '<option value="">-- ምረጥ --</option>';
+      deptSelect.innerHTML = '<option value="">-- Select Department --</option>';
 
       if (college && COLLEGES[college]) {
         COLLEGES[college].forEach(dept => {
@@ -462,111 +432,12 @@
       }
     };
 
-    // ============ QR ስካን ============
-    window.startScan = async function() {
-      if (!scanner) {
-        scanner = new QRScanner('reader', handleScan);
-      }
-      try {
-        document.getElementById('scanStatus').textContent = '📷 ካሜራ ዝግጁ — QR ኮድ ወደ ካሜራ ያቅርቡ';
-        await scanner.start();
-      } catch (e) {
-        console.error('Scanner error:', e);
-        document.getElementById('scanStatus').textContent = '❌ ካሜራ ሊከፈት አልቻለም';
-      }
-    };
-
-    async function handleScan(raw) {
-      console.log('📷 QR Scanned:', raw);
-      await scanner.pause();
-      document.getElementById('scanStatus').textContent = '⏳ QR በመቀየር ላይ...';
-
-      try {
-        const res = await fetch('/api/parse-fayda', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ raw })
-        });
-        const data = await res.json();
-        console.log('🔍 Parse result:', data);
-
-        if (!data.ok) {
-          document.getElementById('scanStatus').textContent = '❌ ይህ Fayda QR አይደለም';
-          setTimeout(() => scanner.resume(), 2500);
-          return;
-        }
-
-        scannedData = data;
-        if (data.name) document.getElementById('fName').value = data.name;
-        if (data.birthdate) document.getElementById('fBirthdate').value = data.birthdate;
-        if (data.gender) document.getElementById('fGender').value = data.gender;
-
-        document.getElementById('scanStatus').innerHTML =
-          `✅ <b>${data.name || 'QR ተነብቧል'}</b><br>FAN: ${data.fan || '—'} · FIN: ${data.fin || '—'}`;
-
-        ui.beep(true);
-        ui.speak('QR code scanned successfully');
-        await scanner.stop();
-      } catch (e) {
-        console.error('Handle scan error:', e);
-        document.getElementById('scanStatus').textContent = '❌ ኔትወርክ ስህተት';
-        setTimeout(() => scanner.resume(), 2500);
-      }
-    }
-
-    window.useManualEntry = function() {
-      const fan = document.getElementById('manualFan').value.trim();
-      const fin = document.getElementById('manualFin').value.trim();
-
-      if (!fan && !fin) {
-        return alert('FAN ወይም FIN ያስፈልጋል');
-      }
-
-      scannedData = { fan, fin, name: '', birthdate: '', gender: '' };
-      document.getElementById('scanStatus').innerHTML =
-        `✅ <b>በእጅ ገብቷል</b><br>FAN: ${fan || '—'} · FIN: ${fin || '—'}`;
-      ui.beep(true);
-    };
-
-    // ============ ፊት አንሳ ============
-    window.captureFace = async function() {
-      const video = document.getElementById('video');
-      const status = document.getElementById('faceStatus');
-      const btn = document.getElementById('captureBtn');
-
-      try {
-        status.textContent = '⏳ ፊት በመተንተን ላይ...';
-        btn.disabled = true;
-
-        const descriptor = await faceHelper.captureDescriptor(video);
-
-        if (!descriptor) {
-          status.textContent = '❌ ፊት አልታወቀም — ወደ ካሜራ ቅርብ ይሁኑ፣ ብርሃን ይሁን';
-          btn.disabled = false;
-          ui.beep(false);
-          return;
-        }
-
-        faceDescriptor = descriptor;
-        status.textContent = '✅ ፊት በተሳካ ሁኔታ ተመዝግቧል!';
-        document.getElementById('faceSuccess').style.display = 'block';
-        btn.textContent = '✅ ፊት ተነስቷል';
-        btn.classList.add('captured');
-        ui.beep(true);
-        ui.speak('Face captured successfully');
-      } catch (e) {
-        console.error('Capture face error:', e);
-        status.textContent = '❌ ስህተት ተፈጥሯል: ' + e.message;
-        btn.disabled = false;
-      }
-    };
-
-    // ============ ምዝገባ አስገባ ============
+    // ============ Submit ============
     window.submitRegistration = async function() {
       const payload = {
         type: currentType,
-        fan: scannedData.fan || '',
-        fin: scannedData.fin || '',
+        fan: verifiedData.fan || '',
+        fin: verifiedData.fin || '',
         name: document.getElementById('fName').value.trim(),
         universityId: document.getElementById('fUniversityId').value.trim(),
         college: document.getElementById('fCollege')?.value || '',
@@ -576,56 +447,48 @@
         region: document.getElementById('fRegion').value,
         gender: document.getElementById('fGender').value,
         birthdate: document.getElementById('fBirthdate').value,
-        faceDescriptor,
         nationalIdImage: currentType === 'cafe' ? nationalIdBase64 : '',
       };
 
-      // ፍተሻዎች
+      if (!isVerified) {
+        return ui.showStatus('err', '⚠️', 'Fayda verification required', 'Please verify your FAN/FIN first');
+      }
       if (!payload.name || !payload.phone || !payload.region) {
-        return ui.showStatus('err', '⚠️', 'ያልተሟላ', 'ስም, ስልክ እና ክልል ያስፈልጋሉ');
-      }
-      if (!payload.fan && !payload.fin) {
-        return ui.showStatus('err', '⚠️', 'Fayda QR ያስፈልጋል', 'Fayda QR ስካን ያድርጉ ወይም በእጅ ያስገቡ');
-      }
-      if (!payload.faceDescriptor) {
-        return ui.showStatus('err', '⚠️', 'የፊት ምዝገባ ያስፈልጋል', '"ፊቴን አንሳ" የሚለውን ይጫኑ');
+        return ui.showStatus('err', '⚠️', 'Incomplete', 'Name, phone and region are required');
       }
       if (currentType === 'cafe' && !payload.nationalIdImage) {
-        return ui.showStatus('err', '⚠️', 'National ID ያስፈልጋል', 'የNational ID ፎቶ ይጫኑ');
+        return ui.showStatus('err', '⚠️', 'National ID required', 'Upload your National ID photo');
       }
       if (currentType !== 'staff' && (!payload.college || !payload.department)) {
-        return ui.showStatus('err', '⚠️', 'ኮሌጅ እና ዲፓርትመንት ያስፈልጋሉ', 'ሁለቱንም ይምረጡ');
+        return ui.showStatus('err', '⚠️', 'College & Department required', 'Please select both');
       }
 
-      ui.showStatus('warn', '⏳', 'በመመዝገብ ላይ...', 'እባክህ ጠብቅ');
+      ui.showStatus('warn', '⏳', 'Registering...', 'Please wait');
 
       try {
         const res = await fetch('/api/register', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload)
+          body: JSON.stringify(payload),
         });
         const data = await res.json();
-        console.log('Register response:', data);
 
         if (data.ok) {
-          ui.showStatus('ok', '✅', 'ተመዝግቧል!', 'Admin ሲያጸድቅ ወደ ስርዓቱ መግባት ትችላለህ');
+          ui.showStatus('ok', '✅', 'Registered!', 'Admin will approve shortly');
           ui.beep(true);
-          ui.speak('Registration successful. Please wait for admin approval');
+          ui.speak('Registration successful');
           setTimeout(() => {
             backToStep1();
-            // Reset
-            faceDescriptor = null;
+            verifiedData = {};
+            isVerified = false;
             nationalIdBase64 = '';
-            scannedData = {};
           }, 5000);
         } else {
-          ui.showStatus('err', '❌', 'ምዝገባ አልተሳካም', data.message || 'ስህተት ተፈጥሯል');
+          ui.showStatus('err', '❌', 'Registration failed', data.message || 'Error');
           ui.beep(false);
         }
       } catch (e) {
-        console.error('Submit error:', e);
-        ui.showStatus('err', '⚠️', 'Network Error', 'ኔትወርክ ስህተት — እንደገና ሞክር');
+        ui.showStatus('err', '⚠️', 'Network Error', 'Please try again');
       }
     };
   </script>
