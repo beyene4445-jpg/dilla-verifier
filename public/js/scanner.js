@@ -1,3 +1,6 @@
+// ============================================================
+// QR Scanner
+// ============================================================
 export class QRScanner {
   constructor(elementId, onScan) {
     this.elementId = elementId;
@@ -14,6 +17,7 @@ export class QRScanner {
     if (!window.Html5Qrcode) throw new Error('Html5Qrcode not loaded');
 
     this.scanner = new window.Html5Qrcode(this.elementId, { verbose: false });
+
     const config = {
       fps: 12,
       qrbox: (w, h) => {
@@ -40,7 +44,23 @@ export class QRScanner {
     this.onScan(text);
   }
 
-  async stop() { if (this.scanner && this.running) { try { await this.scanner.stop(); } catch {} this.running = false; } }
-  async pause() { if (this.scanner && this.running) { try { this.scanner.pause(true); } catch {} } }
-  async resume() { if (this.scanner && this.running) { try { this.scanner.resume(); } catch {} } }
+  async stop() {
+    if (!this.scanner || !this.running) return;
+    try {
+      await this.scanner.stop();
+    } catch {}
+    this.running = false;
+  }
+
+  async pause() {
+    if (this.scanner && this.running) {
+      try { this.scanner.pause(true); } catch {}
+    }
+  }
+
+  async resume() {
+    if (this.scanner && this.running) {
+      try { this.scanner.resume(); } catch {}
+    }
+  }
 }
