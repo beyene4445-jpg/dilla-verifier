@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>Capture Face · Dilla Verifier</title>
+  <meta name="theme-color" content="#020617" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/css/app.css" />
+  <script src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"></script>
+  <style>
+    .video-container {
+      background: #000; border-radius: 16px; overflow: hidden;
+      position: relative; aspect-ratio: 4/3; margin-bottom: 16px;
+    }
+    .video-container video { width: 100%; height: 100%; object-fit: cover; }
+    .face-guide {
+      position: absolute; inset: 0; pointer-events: none;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .face-guide .oval {
+      width: 55%; height: 75%;
+      border: 3px dashed rgba(16, 185, 129, 0.6);
+      border-radius: 50%;
+      box-shadow: 0 0 30px rgba(16, 185, 129, 0.3);
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>📷 Capture Face</h1>
+      <p>Register your face for cafeteria access</p>
+    </div>
+
+    <div class="card">
+      <label class="lbl" style="display: block; margin-bottom: 6px; font-size: 13px; color: var(--text-2);">FAN *</label>
+      <input class="input" id="fan" placeholder="FAN" style="margin-bottom: 12px;" />
+
+      <label class="lbl" style="display: block; margin-bottom: 6px; font-size: 13px; color: var(--text-2);">FIN</label>
+      <input class="input" id="fin" placeholder="FIN" style="margin-bottom: 16px;" />
+
+      <div class="video-container">
+        <video id="video" autoplay muted playsinline></video>
+        <div class="face-guide"><div class="oval"></div></div>
+      </div>
+
+      <div id="faceStatus" style="text-align: center; padding: 12px; font-size: 14px; color: var(--text-2);">
+        ⏳ Loading camera...
+      </div>
+
+      <button class="btn btn-primary btn-block" id="captureBtn" onclick="captureAndSave()" style="padding: 16px;" disabled>
+        📸 Capture Face
+      </button>
+
+      <div id="status" class="status hidden"></div>
+    </div>
+
+    <p class="hint"><a href="/" style="color: var(--accent);">← Back</a></p>
+  </div>
+
+  <script type="module">
+    import { ui } from '/js/ui.js';
+    import { faceHelper } from '/js/face-helper.js';
+
+    let video;
+
+    async function init() {
+      video = document.getElementById('video');
+      const statusEl = document.getElementById('faceStatus');
+      const btn = document.getElementById('captureBtn');
+
+      try {
+        statusEl.textContent = '⏳ Loading face models...';
+        await faceHelper.loadModels();
+
+        statusEl.textContent = '📷 Opening camera...';
+        const stream = await navigator.mediaDevices.getUserMedia({
+          video: { facingMode: 'user', width: 640, height: 480 },
+        });
+        video.srcObject = stream;
+
+        statusEl.textContent = '✅ Ready — Position your face in the circle';
+        btn.disabled = false;
+      } catch (e) {
+        console.error(e);
+        statusEl.innerHTML = '<span style="color: var(--danger);">❌ Camera or models unavailable</span>';
+      }
+    }
+
+    window.captureAndSave = async function() {
+      const fan = document.getElementById('fan').value.trim();
+      const fin = document.getElementById('fin').value.trim();
+      const btn = document.getElementById('captureBtn');
+
+      if (!fan && !fin) {
+        return ui.showStatus('err', '⚠️', 'FAN or FIN required', '');
+      }
+
+      btn.disabled = true;
+      btn.textContent = '⏳ Capturing...';
+
+      try {
+        const descriptor = await faceHelper.captureDescriptor(video);
+        if (!descriptor) {
+          ui.showStatus('err', '❌', 'Face Not Detected', 'Position your face in the circle');
+          ui.beep(false);
+          return;
+        }
+
+        const res = await fetch('/api/update-face', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ fan, fin, descriptor }),
+        });
+        const data = await res.json();
+
+        if (data.ok) {
+          ui.showStatus('ok', '✅', 'Face Registered', 'You can now use cafeteria face access');
+          ui.beep(true);
+          ui.speak('Face registered successfully');
+        } else {
+          ui.showStatus('err', '❌', 'Failed', data.message || 'Error');
+          ui.beep(false);
+        }
+      } catch (e) {
+        ui.showStatus('err', '⚠️', 'Error', e.message);
+      } finally {
+        btn.disabled = false;
+        btn.textContent = '📸 Capture Face';
+      }
+    };
+
+    init();
+  </script>
+</body>
+</html>
