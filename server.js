@@ -30,6 +30,7 @@ const drive = google.drive({ version: 'v3', auth });
 
 const SHEET_ID = process.env.SHEET_ID;
 const DRIVE_FOLDER_ID = process.env.DRIVE_FOLDER_ID;
+const SHEET_WEBAPP_URL = process.env.SHEET_WEBAPP_URL;
 
 // ============================================================
 // Fayda QR Parser
@@ -37,21 +38,21 @@ const DRIVE_FOLDER_ID = process.env.DRIVE_FOLDER_ID;
 function parseFaydaQR(raw) {
   if (!raw || typeof raw !== 'string') return null;
 
-  // 1. Direct JSON
+  // Direct JSON
   try {
     const data = JSON.parse(raw);
     if (data && typeof data === 'object') {
       return {
-        fan: data.fan || data.FAN || data.faydaId || data.fayda_id || data.id || null,
+        fan: data.fan || data.FAN || data.faydaId || data.id || null,
         fin: data.fin || data.FIN || null,
-        name: data.name || data.fullName || data.full_name || data.firstName || null,
-        birthdate: data.dob || data.birthdate || data.dateOfBirth || data.date_of_birth || null,
+        name: data.name || data.fullName || data.full_name || null,
+        birthdate: data.dob || data.birthdate || data.dateOfBirth || null,
         gender: data.gender || data.sex || null,
       };
     }
   } catch {}
 
-  // 2. Base64 decoded JSON
+  // Base64 decoded
   try {
     const decoded = Buffer.from(raw, 'base64').toString('utf-8');
     try {
@@ -66,7 +67,7 @@ function parseFaydaQR(raw) {
     } catch {}
   } catch {}
 
-  // 3. URL query
+  // URL query params
   try {
     if (raw.startsWith('http')) {
       const url = new URL(raw);
@@ -76,7 +77,7 @@ function parseFaydaQR(raw) {
     }
   } catch {}
 
-  // 4. Separated values
+  // Separated values
   const separators = ['|', ',', ';', '\t'];
   for (const sep of separators) {
     if (raw.includes(sep)) {
@@ -90,7 +91,7 @@ function parseFaydaQR(raw) {
     }
   }
 
-  // 5. Pure number — treat as FAN
+  // Plain number = FAN
   return { fan: raw.trim(), fin: null, name: null, birthdate: null, gender: null };
 }
 
@@ -118,7 +119,7 @@ function euclideanDistance(a, b) {
 }
 
 // ============================================================
-// Registry Access
+// Registry helpers
 // ============================================================
 async function getAllRegistry() {
   try {
@@ -213,12 +214,7 @@ async function verifyAgainstDU(fan, fin) {
     for (let i = 1; i < rows.length; i++) {
       const r = rows[i];
       if ((fan && r[0] === fan) || (fin && r[1] === fin)) {
-        return {
-          fan: r[0] || '',
-          fin: r[1] || '',
-          name: r[2] || '',
-          status: r[3] || '',
-        };
+        return { fan: r[0] || '', fin: r[1] || '', name: r[2] || '', status: r[3] || '' };
       }
     }
     return null;
@@ -229,7 +225,7 @@ async function verifyAgainstDU(fan, fin) {
 }
 
 // ============================================================
-// Meal & Gate Logging
+// Meal & Gate logging
 // ============================================================
 async function checkMealUsed(fan, mealType) {
   try {
@@ -258,9 +254,7 @@ async function logMeal(fan, name, mealType, location) {
         values: [[fan, todayStr(), mealType, new Date().toISOString(), location || 'cafeteria']],
       },
     });
-  } catch (e) {
-    console.error('logMeal error:', e.message);
-  }
+  } catch (e) { console.error('logMeal:', e.message); }
 }
 
 async function logGate(fan, name, result, gate) {
@@ -273,13 +267,11 @@ async function logGate(fan, name, result, gate) {
         values: [[fan || '', name || '', todayStr(), new Date().toISOString(), result, gate || 'main']],
       },
     });
-  } catch (e) {
-    console.error('logGate error:', e.message);
-  }
+  } catch (e) { console.error('logGate:', e.message); }
 }
 
 // ============================================================
-// Drive Upload (National ID)
+// Drive Upload
 // ============================================================
 async function uploadToDrive(base64Data, filename, mimeType = 'image/jpeg') {
   try {
@@ -309,7 +301,7 @@ async function uploadToDrive(base64Data, filename, mimeType = 'image/jpeg') {
 }
 
 // ============================================================
-// API: Parse Fayda (accepts QR string OR plain FAN/FIN)
+// API: Parse Fayda (QR OR plain FAN/FIN)
 // ============================================================
 app.post('/api/parse-fayda', async (req, res) => {
   const { raw } = req.body;
@@ -317,12 +309,10 @@ app.post('/api/parse-fayda', async (req, res) => {
 
   const parsed = parseFaydaQR(raw);
 
-  // If QR parser gave us a proper FAN/FIN, use it
   if (parsed && parsed.fan && /^\d{8,}$/.test(String(parsed.fan))) {
     return res.json({ ok: true, ...parsed });
   }
 
-  // Otherwise, look up the plain value in DU_Reference
   const trimmed = String(raw).trim();
   const duRecord = await verifyAgainstDU(trimmed, trimmed);
 
@@ -337,7 +327,6 @@ app.post('/api/parse-fayda', async (req, res) => {
     });
   }
 
-  // Fallback — return the raw value as FAN
   return res.json({
     ok: true,
     fan: trimmed,
@@ -349,7 +338,7 @@ app.post('/api/parse-fayda', async (req, res) => {
 });
 
 // ============================================================
-// API: Register
+// API: Register (pending — admin verifies)
 // ============================================================
 app.post('/api/register', async (req, res) => {
   try {
@@ -358,7 +347,6 @@ app.post('/api/register', async (req, res) => {
       college, department, year, nationalIdImage,
     } = req.body;
 
-    // Validation
     if (!name || !phone || !region) {
       return res.json({ ok: false, message: 'Name, phone and region are required' });
     }
@@ -372,60 +360,30 @@ app.post('/api/register', async (req, res) => {
       return res.json({ ok: false, message: 'National ID photo is required for cafeteria' });
     }
 
-    // Check Dilla University database
-    const duRecord = await verifyAgainstDU(fan, fin);
-    if (!duRecord) {
-      return res.json({
-        ok: false,
-        message: 'Not found in Dilla University database. Please contact admin.',
-      });
-    }
-
-    // Check if already registered
     const existing = await findByFanFin(fan, fin);
     if (existing) {
       return res.json({
         ok: false,
-        message: 'This person is already registered',
+        message: 'This person is already registered. Please contact admin.',
       });
     }
 
-    // Upload National ID if provided
     let nationalIdUrl = '';
     if (nationalIdImage) {
       const filename = `national-id-${fan || fin}-${Date.now()}.jpg`;
       try {
         nationalIdUrl = await uploadToDrive(nationalIdImage, filename);
       } catch (e) {
-        console.error('Drive upload failed, continuing:', e.message);
+        console.error('Drive upload failed:', e.message);
       }
     }
 
-    // Build row (A..S)
-    // A=FAN, B=FIN, C=Name, D=UniversityID, E=Department(short), F=Year,
-    // G=Phone, H=Region, I=Gender, J=Birthdate, K=College, L=Department(full),
-    // M=UserType, N=FaceDescriptor, O=FingerprintID, P=NationalIDUrl,
-    // Q=Status, R=ApprovedAt, S=CreatedAt
     const row = [
-      fan || '',
-      fin || '',
-      name || '',
-      universityId || '',
-      department || '',
-      year || '',
-      phone || '',
-      region || '',
-      gender || '',
-      birthdate || '',
-      college || '',
-      department || '',
-      type || '',
-      '', // Face descriptor — filled after registration via /api/update-face
-      '',
-      nationalIdUrl,
-      'pending',
-      '',
-      new Date().toISOString(),
+      fan || '', fin || '', name || '', universityId || '',
+      department || '', year || '', phone || '', region || '',
+      gender || '', birthdate || '', college || '', department || '',
+      type || '', '', '', nationalIdUrl,
+      'pending', '', new Date().toISOString(),
     ];
 
     await sheets.spreadsheets.values.append({
@@ -435,9 +393,29 @@ app.post('/api/register', async (req, res) => {
       requestBody: { values: [row] },
     });
 
+    // Notify admin via Apps Script webhook
+    if (SHEET_WEBAPP_URL) {
+      try {
+        await fetch(SHEET_WEBAPP_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            action: 'new_registration',
+            name, fan: fan || '', fin: fin || '',
+            phone, region, type,
+            college: college || '', department: department || '',
+            universityId: universityId || '',
+          }),
+        });
+        console.log('✅ Admin notified');
+      } catch (e) {
+        console.warn('Webhook failed:', e.message);
+      }
+    }
+
     res.json({
       ok: true,
-      message: 'Registered successfully! Admin will approve shortly.',
+      message: 'Your registration is under evaluation. It will be verified soon.',
     });
   } catch (err) {
     console.error('Register error:', err);
@@ -446,7 +424,7 @@ app.post('/api/register', async (req, res) => {
 });
 
 // ============================================================
-// API: Update Face Descriptor (called from a face capture page)
+// API: Update Face Descriptor
 // ============================================================
 app.post('/api/update-face', async (req, res) => {
   try {
@@ -469,7 +447,7 @@ app.post('/api/update-face', async (req, res) => {
 
     res.json({ ok: true, message: 'Face registered' });
   } catch (err) {
-    console.error('update-face error:', err);
+    console.error('update-face:', err);
     res.status(500).json({ ok: false, message: err.message });
   }
 });
@@ -494,42 +472,27 @@ app.post('/api/verify', async (req, res) => {
 
     if (student.status !== 'active') {
       return res.json({
-        allowed: false,
-        reason: 'not_approved',
-        message: 'Registration not approved yet',
-        student,
+        allowed: false, reason: 'not_approved',
+        message: 'Registration not approved yet', student,
       });
     }
 
     if (mode === 'cafeteria') {
       if (student.userType !== 'cafe') {
-        return res.json({
-          allowed: false,
-          reason: 'not_cafe_user',
-          message: 'No cafeteria access',
-          student,
-        });
+        return res.json({ allowed: false, reason: 'not_cafe_user', message: 'No cafeteria access', student });
       }
 
       const mealType = getMealType();
       const usedAt = await checkMealUsed(student.fan, mealType);
       if (usedAt) {
-        return res.json({
-          allowed: false,
-          reason: 'already_used',
-          message: 'Already used for this meal',
-          student,
-        });
+        return res.json({ allowed: false, reason: 'already_used', message: 'Already used for this meal', student });
       }
 
       await logMeal(student.fan, student.name, mealType, location);
       await logGate(student.fan, student.name, 'meal_ok', location);
       return res.json({
-        allowed: true,
-        reason: 'meal_ok',
-        message: 'Enjoy your meal',
-        mealType,
-        student,
+        allowed: true, reason: 'meal_ok',
+        message: 'Enjoy your meal', mealType, student,
       });
     }
 
@@ -559,50 +522,32 @@ app.post('/api/verify-face', async (req, res) => {
     }
 
     if (match.status !== 'active') {
-      return res.json({
-        allowed: false,
-        reason: 'not_approved',
-        message: 'Registration not approved',
-        student: match,
-      });
+      return res.json({ allowed: false, reason: 'not_approved', message: 'Registration not approved', student: match });
     }
 
     if (mode === 'cafeteria') {
       if (match.userType !== 'cafe') {
-        return res.json({
-          allowed: false,
-          reason: 'not_cafe_user',
-          message: 'No cafeteria access',
-          student: match,
-        });
+        return res.json({ allowed: false, reason: 'not_cafe_user', message: 'No cafeteria access', student: match });
       }
 
       const mealType = getMealType();
       const usedAt = await checkMealUsed(match.fan, mealType);
       if (usedAt) {
-        return res.json({
-          allowed: false,
-          reason: 'already_used',
-          message: 'Already used for this meal',
-          student: match,
-        });
+        return res.json({ allowed: false, reason: 'already_used', message: 'Already used for this meal', student: match });
       }
 
       await logMeal(match.fan, match.name, mealType, location);
       await logGate(match.fan, match.name, 'meal_ok', location);
       return res.json({
-        allowed: true,
-        reason: 'meal_ok',
-        message: 'Enjoy your meal',
-        mealType,
-        student: match,
+        allowed: true, reason: 'meal_ok',
+        message: 'Enjoy your meal', mealType, student: match,
       });
     }
 
     await logGate(match.fan, match.name, 'allowed', gate);
     return res.json({ allowed: true, reason: 'gate_ok', message: 'Verified', student: match });
   } catch (err) {
-    console.error('verify-face error:', err);
+    console.error('verify-face:', err);
     res.status(500).json({ allowed: false, reason: 'server_error', message: err.message });
   }
 });
@@ -620,9 +565,7 @@ app.get('/api/stats', async (req, res) => {
       try {
         const r = await sheets.spreadsheets.values.get({ spreadsheetId: SHEET_ID, range });
         return r.data.values || [];
-      } catch {
-        return [];
-      }
+      } catch { return []; }
     };
 
     const [registry, meals, gates] = await Promise.all([
@@ -653,7 +596,7 @@ app.get('/api/stats', async (req, res) => {
 });
 
 // ============================================================
-// API: Pending list (Admin)
+// API: Pending list
 // ============================================================
 app.get('/api/admin/pending', async (req, res) => {
   try {
@@ -667,15 +610,11 @@ app.get('/api/admin/pending', async (req, res) => {
       .filter(({ row }) => (row[16] || '').toLowerCase() === 'pending')
       .map(({ rowIndex, row }) => ({
         rowIndex,
-        fan: row[0],
-        fin: row[1],
-        name: row[2],
-        phone: row[6],
-        region: row[7],
-        college: row[10],
-        userType: row[12],
-        nationalIdUrl: row[15],
-        createdAt: row[18],
+        fan: row[0] || '', fin: row[1] || '', name: row[2] || '',
+        universityId: row[3] || '', phone: row[6] || '', region: row[7] || '',
+        college: row[10] || '', department: row[11] || '',
+        userType: row[12] || '', nationalIdUrl: row[15] || '',
+        createdAt: row[18] || '',
       }));
 
     res.json({ ok: true, pending });
@@ -685,7 +624,7 @@ app.get('/api/admin/pending', async (req, res) => {
 });
 
 // ============================================================
-// API: Approve / Reject (Admin)
+// API: Approve / Reject
 // ============================================================
 app.post('/api/admin/approve', async (req, res) => {
   try {
@@ -710,6 +649,85 @@ app.post('/api/admin/approve', async (req, res) => {
 });
 
 // ============================================================
+// API: Auto-verify pending against DU_Reference
+// ============================================================
+app.post('/api/admin/auto-verify', async (req, res) => {
+  try {
+    const { key } = req.body;
+    if (key !== process.env.ADMIN_KEY) {
+      return res.status(401).json({ error: 'unauthorized' });
+    }
+
+    let duRows = [];
+    try {
+      const r = await sheets.spreadsheets.values.get({
+        spreadsheetId: SHEET_ID,
+        range: 'DU_Reference!A:D',
+      });
+      duRows = r.data.values || [];
+    } catch (e) {
+      return res.json({ ok: false, message: 'DU_Reference sheet not found' });
+    }
+
+    if (duRows.length < 2) {
+      return res.json({ ok: false, message: 'DU_Reference is empty' });
+    }
+
+    const registry = await getAllRegistry();
+    if (registry.length < 2) {
+      return res.json({ ok: true, approved: 0, rejected: 0, total: 0 });
+    }
+
+    let approved = 0, rejected = 0;
+    const updates = [];
+
+    for (let i = 1; i < registry.length; i++) {
+      const row = registry[i];
+      const status = (row[16] || '').toLowerCase();
+      if (status !== 'pending') continue;
+
+      const fan = row[0], fin = row[1];
+
+      let found = false;
+      for (let j = 1; j < duRows.length; j++) {
+        if ((fan && duRows[j][0] === fan) || (fin && duRows[j][1] === fin)) {
+          found = true;
+          break;
+        }
+      }
+
+      const rowIndex = i + 1;
+      const newStatus = found ? 'active' : 'rejected';
+      const approvedAt = found ? new Date().toISOString() : '';
+
+      updates.push({
+        range: `Registry!Q${rowIndex}:R${rowIndex}`,
+        values: [[newStatus, approvedAt]],
+      });
+
+      if (found) approved++; else rejected++;
+    }
+
+    if (updates.length > 0) {
+      await sheets.spreadsheets.values.batchUpdate({
+        spreadsheetId: SHEET_ID,
+        requestBody: { valueInputOption: 'USER_ENTERED', data: updates },
+      });
+    }
+
+    res.json({
+      ok: true,
+      approved, rejected,
+      total: approved + rejected,
+      message: `Auto-verified: ${approved} approved, ${rejected} rejected`,
+    });
+  } catch (err) {
+    console.error('auto-verify:', err);
+    res.status(500).json({ ok: false, message: err.message });
+  }
+});
+
+// ============================================================
 // Clean URLs
 // ============================================================
 app.get('/signin', (req, res) => res.sendFile(path.join(__dirname, 'public', 'signin.html')));
@@ -719,9 +737,6 @@ app.get('/admin', (req, res) => res.sendFile(path.join(__dirname, 'public', 'adm
 app.get('/register', (req, res) => res.sendFile(path.join(__dirname, 'public', 'register.html')));
 app.get('/capture-face', (req, res) => res.sendFile(path.join(__dirname, 'public', 'capture-face.html')));
 
-// ============================================================
-// Start
-// ============================================================
 app.listen(PORT, () => {
   console.log(`✅ Dilla Verifier running on http://localhost:${PORT}`);
 });
