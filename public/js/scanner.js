@@ -1,6 +1,3 @@
-// ============================================================
-// QR Scanner
-// ============================================================
 export class QRScanner {
   constructor(elementId, onScan) {
     this.elementId = elementId;
@@ -46,9 +43,7 @@ export class QRScanner {
 
   async stop() {
     if (!this.scanner || !this.running) return;
-    try {
-      await this.scanner.stop();
-    } catch {}
+    try { await this.scanner.stop(); } catch {}
     this.running = false;
   }
 
