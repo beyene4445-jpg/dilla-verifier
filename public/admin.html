@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="am">
+<html lang="en">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
@@ -8,110 +8,182 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="/css/app.css" />
 </head>
-<body data-title-key="admin.title">
-  <div id="langSwitcher"></div>
-
+<body>
   <div class="container">
     <div class="header">
-      <h1 data-i18n="admin.title">📊 የአስተዳዳሪ ዳሽቦርድ</h1>
-      <p data-i18n="admin.subtitle">ዲላ ዩኒቨርሲቲ · የምግብ እና የበር ስታቲስቲክስ</p>
+      <h1>📊 Admin Dashboard</h1>
+      <p>Dilla University Verifier</p>
     </div>
 
     <div class="card" id="loginCard">
-      <label style="display:block; margin-bottom: 8px; font-size: 13px; color: var(--text-2);" data-i18n="admin.key">የAdmin ቁልፍ</label>
-      <input class="input" type="password" id="adminKey" data-i18n-placeholder="admin.key" />
-      <button class="btn btn-primary btn-block" style="margin-top: 12px;" onclick="loadStats()">
-        <span data-i18n="admin.enter">ግባ</span>
-      </button>
+      <label style="display:block; margin-bottom: 6px; font-size: 13px; color: var(--text-2);">Admin Key</label>
+      <input class="input" type="password" id="adminKey" placeholder="Admin key..." />
+      <button class="btn btn-primary btn-block" style="margin-top: 12px;" onclick="loadStats()">Sign In</button>
     </div>
 
     <div id="dashboard" style="display: none;">
-      <div class="stats">
-        <div class="stat"><div class="num" id="s-total">–</div><div class="lbl" data-i18n="admin.totalStudents">ጠቅላላ ተማሪ</div></div>
-        <div class="stat"><div class="num" id="s-active">–</div><div class="lbl" data-i18n="admin.activeStudents">ንቁ ተማሪ</div></div>
-        <div class="stat"><div class="num" id="s-meals">–</div><div class="lbl" data-i18n="admin.todayMeals">የዛሬ ምግብ</div></div>
-        <div class="stat"><div class="num" id="s-rejected">–</div><div class="lbl" data-i18n="admin.rejected">የተከለሉ</div></div>
-      </div>
-
-      <div class="card">
-        <h3 style="margin-bottom: 12px; font-size: 16px;" data-i18n="admin.recentMeals">🕒 የቅርብ ጊዜ ምግቦች</h3>
-        <div style="overflow-x: auto;">
-          <table class="table" id="mealsTable">
-            <thead><tr>
-              <th data-i18n="admin.fan">FAN</th>
-              <th data-i18n="admin.meal">ምግብ</th>
-              <th data-i18n="admin.time">ሰዓት</th>
-            </tr></thead>
-            <tbody></tbody>
-          </table>
+      <div class="nav-grid" style="grid-template-columns: repeat(2, 1fr); gap: 8px; margin-bottom: 20px;">
+        <div class="card" style="text-align: center; padding: 16px;">
+          <div style="font-size: 28px; font-weight: 800; color: #06b6d4;" id="s-total">–</div>
+          <div style="font-size: 11px; color: var(--text-2);">Total</div>
+        </div>
+        <div class="card" style="text-align: center; padding: 16px;">
+          <div style="font-size: 28px; font-weight: 800; color: #10b981;" id="s-active">–</div>
+          <div style="font-size: 11px; color: var(--text-2);">Active</div>
+        </div>
+        <div class="card" style="text-align: center; padding: 16px;">
+          <div style="font-size: 28px; font-weight: 800; color: #f59e0b;" id="s-pending">–</div>
+          <div style="font-size: 11px; color: var(--text-2);">Pending</div>
+        </div>
+        <div class="card" style="text-align: center; padding: 16px;">
+          <div style="font-size: 28px; font-weight: 800; color: #ef4444;" id="s-rejected">–</div>
+          <div style="font-size: 11px; color: var(--text-2);">Rejected</div>
         </div>
       </div>
 
-      <div class="card">
-        <h3 style="margin-bottom: 12px; font-size: 16px;" data-i18n="admin.recentGates">🚪 የቅርብ ጊዜ በር እንቅስቃሴ</h3>
-        <div style="overflow-x: auto;">
-          <table class="table" id="gatesTable">
-            <thead><tr>
-              <th data-i18n="register.name">ስም</th>
-              <th data-i18n="admin.result">ውጤት</th>
-              <th data-i18n="admin.gate">በር</th>
-              <th data-i18n="admin.time">ሰዓት</th>
-            </tr></thead>
-            <tbody></tbody>
-          </table>
-        </div>
-      </div>
-
-      <button class="btn btn-ghost btn-block" onclick="loadStats()">
-        <span data-i18n="admin.refresh">🔄 አድስ</span>
+      <button class="btn btn-primary btn-block" onclick="autoVerify()" style="padding: 16px; margin-bottom: 20px; background: linear-gradient(135deg, #06b6d4, #10b981);">
+        ⚡ Auto-Verify Pending (Match with DU Data)
       </button>
+
+      <div id="autoVerifyResult" style="display: none; margin-bottom: 20px;"></div>
+
+      <div class="card">
+        <h3 style="margin-bottom: 12px; font-size: 16px;">⏳ Pending Approvals (<span id="pendingCount">0</span>)</h3>
+        <div id="pendingList"></div>
+      </div>
+
+      <button class="btn btn-ghost btn-block" onclick="loadStats()">🔄 Refresh</button>
     </div>
 
-    <p class="hint"><a href="/" style="color: var(--accent);" data-i18n="admin.back">← ተመለስ</a></p>
+    <p class="hint"><a href="/" style="color: var(--accent);">← Back to Home</a></p>
   </div>
 
-  <script src="/js/i18n.js"></script>
   <script>
+    let adminKey = '';
+
     async function loadStats() {
-      const key = document.getElementById('adminKey').value.trim() || localStorage.getItem('adminKey');
-      if (!key) return alert(t('admin.key'));
-      localStorage.setItem('adminKey', key);
+      adminKey = document.getElementById('adminKey').value.trim() || localStorage.getItem('adminKey');
+      if (!adminKey) return alert('Admin key required');
+      localStorage.setItem('adminKey', adminKey);
 
       try {
-        const res = await fetch(`/api/stats?key=${encodeURIComponent(key)}`);
-        if (!res.ok) throw new Error('Unauthorized');
-        const d = await res.json();
+        const [statsRes, pendingRes] = await Promise.all([
+          fetch(`/api/stats?key=${encodeURIComponent(adminKey)}`),
+          fetch(`/api/admin/pending?key=${encodeURIComponent(adminKey)}`),
+        ]);
+
+        if (!statsRes.ok) throw new Error('Unauthorized');
+
+        const stats = await statsRes.json();
+        const pendingData = await pendingRes.json();
 
         document.getElementById('loginCard').style.display = 'none';
         document.getElementById('dashboard').style.display = 'block';
 
-        document.getElementById('s-total').textContent = d.totalStudents;
-        document.getElementById('s-active').textContent = d.activeStudents;
-        document.getElementById('s-meals').textContent = d.todayMeals;
-        document.getElementById('s-rejected').textContent = d.todayRejected;
+        document.getElementById('s-total').textContent = stats.total;
+        document.getElementById('s-active').textContent = stats.active;
+        document.getElementById('s-pending').textContent = stats.pending;
+        document.getElementById('s-rejected').textContent = stats.rejected;
+        document.getElementById('pendingCount').textContent = stats.pending;
 
-        const mealsBody = document.querySelector('#mealsTable tbody');
-        mealsBody.innerHTML = d.recentMeals.length
-          ? d.recentMeals.map(m => `<tr><td>${m.fan}</td><td>${m.meal}</td><td>${new Date(m.time).toLocaleTimeString()}</td></tr>`).join('')
-          : `<tr><td colspan="3" style="color: var(--text-2);">${t('admin.none')}</td></tr>`;
-
-        const gatesBody = document.querySelector('#gatesTable tbody');
-        gatesBody.innerHTML = d.recentGates.length
-          ? d.recentGates.map(g => `
-            <tr>
-              <td>${g.name || g.fan || '—'}</td>
-              <td><span class="badge ${g.result === 'allowed' || g.result === 'meal_ok' ? 'ok' : 'err'}">${g.result}</span></td>
-              <td>${g.gate || '—'}</td>
-              <td>${new Date(g.time).toLocaleTimeString()}</td>
-            </tr>`).join('')
-          : `<tr><td colspan="4" style="color: var(--text-2);">${t('admin.none')}</td></tr>`;
+        renderPending(pendingData.pending || []);
       } catch (e) {
-        alert(t('register.failed'));
+        alert('Error: ' + e.message);
       }
     }
 
-    const savedKey = localStorage.getItem('adminKey');
-    if (savedKey) { document.getElementById('adminKey').value = savedKey; loadStats(); }
+    function renderPending(list) {
+      const el = document.getElementById('pendingList');
+      if (!list.length) {
+        el.innerHTML = '<div style="text-align: center; color: var(--text-2); padding: 20px;">✅ No pending approvals</div>';
+        return;
+      }
+
+      el.innerHTML = list.map(p => `
+        <div style="padding: 14px; border-bottom: 1px solid var(--border);">
+          <div style="display: flex; gap: 8px; align-items: flex-start;">
+            <div style="flex: 1; min-width: 0;">
+              <div style="font-weight: 700; font-size: 15px; margin-bottom: 4px;">${p.name || '—'}</div>
+              <div style="font-size: 12px; color: var(--text-2); line-height: 1.5;">
+                <div>FAN: ${p.fan || '—'} · FIN: ${p.fin || '—'}</div>
+                <div>📱 ${p.phone || '—'} · 🗺️ ${p.region || '—'}</div>
+                <div>🎓 ${p.userType || '—'} · ${p.college || '—'}</div>
+                ${p.universityId ? `<div>ID: ${p.universityId}</div>` : ''}
+              </div>
+              ${p.nationalIdUrl ? `<a href="${p.nationalIdUrl}" target="_blank" style="font-size: 11px; color: var(--accent); display: inline-block; margin-top: 6px;">📷 View National ID</a>` : ''}
+            </div>
+            <div style="display: flex; flex-direction: column; gap: 6px;">
+              <button class="btn btn-primary" style="padding: 8px 14px; font-size: 13px;" onclick="approve(${p.rowIndex})">✓ Approve</button>
+              <button class="btn btn-ghost" style="padding: 8px 14px; font-size: 13px;" onclick="reject(${p.rowIndex})">✕ Reject</button>
+            </div>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    async function approve(rowIndex) {
+      await fetch('/api/admin/approve', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ key: adminKey, rowIndex, decision: 'approve' }),
+      });
+      loadStats();
+    }
+
+    async function reject(rowIndex) {
+      if (!confirm('Reject this registration?')) return;
+      await fetch('/api/admin/approve', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ key: adminKey, rowIndex, decision: 'reject' }),
+      });
+      loadStats();
+    }
+
+    async function autoVerify() {
+      if (!confirm('Auto-verify all pending registrations against DU_Reference data?')) return;
+
+      const el = document.getElementById('autoVerifyResult');
+      el.style.display = 'block';
+      el.innerHTML = '<div class="card" style="text-align: center;">⏳ Running auto-verification...</div>';
+
+      try {
+        const res = await fetch('/api/admin/auto-verify', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ key: adminKey }),
+        });
+        const data = await res.json();
+
+        if (data.ok) {
+          el.innerHTML = `
+            <div class="card" style="background: rgba(16,185,129,0.1); border: 1px solid var(--accent);">
+              <div style="font-size: 14px; font-weight: 700; margin-bottom: 8px;">⚡ Auto-Verification Complete</div>
+              <div style="font-size: 13px; color: var(--text-1); line-height: 1.8;">
+                ✅ Approved: <b>${data.approved}</b><br>
+                ❌ Rejected: <b>${data.rejected}</b><br>
+                📊 Total: <b>${data.total}</b>
+              </div>
+            </div>
+          `;
+          setTimeout(() => loadStats(), 1500);
+        } else {
+          el.innerHTML = `<div class="card" style="background: rgba(239,68,68,0.1); border: 1px solid var(--danger);">
+            <div style="color: #fca5a5;">❌ ${data.message || 'Auto-verify failed'}</div>
+          </div>`;
+        }
+      } catch (e) {
+        el.innerHTML = `<div class="card" style="background: rgba(239,68,68,0.1); border: 1px solid var(--danger);">
+          <div style="color: #fca5a5;">❌ Error: ${e.message}</div>
+        </div>`;
+      }
+    }
+
+    const saved = localStorage.getItem('adminKey');
+    if (saved) {
+      document.getElementById('adminKey').value = saved;
+      loadStats();
+    }
   </script>
 </body>
 </html>
