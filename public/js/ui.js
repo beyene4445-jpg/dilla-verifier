@@ -1,6 +1,3 @@
-// ============================================================
-// UI Helpers
-// ============================================================
 export const ui = {
   showStatus(type, icon, title, subtitle, extra = '') {
     const el = document.getElementById('status');
@@ -47,13 +44,5 @@ export const ui = {
         ctx.close();
       }, ok ? 120 : 400);
     } catch {}
-  },
-
-  toast(msg, ms = 2200) {
-    const t = document.createElement('div');
-    t.className = 'toast';
-    t.textContent = msg;
-    document.body.appendChild(t);
-    setTimeout(() => t.remove(), ms);
   },
 };
