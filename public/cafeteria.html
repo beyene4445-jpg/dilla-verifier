@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="am">
+<html lang="en">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
@@ -7,72 +7,160 @@
   <meta name="theme-color" content="#020617" />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="/css/app.css" />
-  <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"></script>
+  <style>
+    .video-container {
+      background: #000; border-radius: 16px; overflow: hidden;
+      position: relative; aspect-ratio: 4/3; margin-bottom: 16px;
+    }
+    .video-container video {
+      width: 100%; height: 100%; object-fit: cover; display: block;
+    }
+    .face-guide {
+      position: absolute; inset: 0; pointer-events: none;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .face-guide .oval {
+      width: 55%; height: 75%;
+      border: 3px dashed rgba(16,185,129,0.6);
+      border-radius: 50%;
+      box-shadow: 0 0 30px rgba(16,185,129,0.3);
+    }
+    .scan-btn {
+      background: linear-gradient(135deg, #10b981, #06b6d4);
+      color: white; border: none;
+      padding: 18px; border-radius: 14px;
+      font-size: 16px; font-weight: 700;
+      width: 100%; cursor: pointer; transition: all 0.2s;
+    }
+    .scan-btn:hover:not(:disabled) { transform: translateY(-1px); }
+    .scan-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+  </style>
 </head>
 <body>
   <div class="container">
     <div class="header">
-      <h1>🍽️ የካፌቴሪያ ማረጋገጫ</h1>
-      <p>የFayda QR ኮድ ወደ ካሜራው አቅርብ</p>
+      <h1>🍽️ Cafeteria</h1>
+      <p>Face verification for meal access</p>
     </div>
 
-    <div class="card" style="padding: 12px;"><div id="reader"></div></div>
+    <div class="card" style="padding: 12px;">
+      <div class="video-container">
+        <video id="video" autoplay muted playsinline></video>
+        <div class="face-guide"><div class="oval"></div></div>
+      </div>
+
+      <div id="faceStatus" style="text-align: center; padding: 12px; font-size: 14px; color: var(--text-2);">
+        ⏳ Loading camera...
+      </div>
+    </div>
+
+    <button class="scan-btn" id="scanBtn" onclick="verifyNow()" disabled>
+      📷 Verify My Face
+    </button>
+
     <div id="status" class="status hidden"></div>
 
     <div style="display: flex; gap: 10px; margin-top: 16px;">
-      <button class="btn btn-ghost btn-block" onclick="window.location.href='/'">← ተመለስ</button>
-      <button class="btn btn-ghost btn-block" id="toggleBtn">⏸ አቁም</button>
+      <button class="btn btn-ghost btn-block" onclick="window.location.href='/'">← Back</button>
     </div>
-    <p class="hint">አንድ ተማሪ ለአንድ ምግብ አንድ ጊዜ ብቻ</p>
+
+    <p class="hint">One meal per session · Face must be registered</p>
   </div>
 
   <script type="module">
-    import { api } from '/js/api.js';
     import { ui } from '/js/ui.js';
-    import { QRScanner } from '/js/scanner.js';
+    import { faceHelper } from '/js/face-helper.js';
 
-    let processing = false;
-    const scanner = new QRScanner('reader', async (raw) => {
-      if (processing) return;
-      processing = true;
-      await scanner.pause();
+    let video;
+    let busy = false;
+
+    async function init() {
+      video = document.getElementById('video');
+      const statusEl = document.getElementById('faceStatus');
+      const btn = document.getElementById('scanBtn');
 
       try {
-        const result = await api.verify(raw, 'cafeteria', { location: 'main-cafeteria' });
+        statusEl.textContent = '⏳ Loading face models...';
+        await faceHelper.loadModels();
 
-        if (result.allowed) {
-          const meal = { breakfast: 'ቁርስ', lunch: 'ምሳ', dinner: 'እራት', 'off-hours': 'ምግብ' }[result.mealType] || 'ምግብ';
-          ui.showStatus('ok', '🍽️', 'Get In!', `${meal} · መልካም ምሳ ይሁንልህ`, result.student?.name || '');
-          ui.beep(true);
-          ui.speak('Get in. We wish a good meal to you');
-        } else if (result.reason === 'already_used') {
-          ui.showStatus('warn', '⛔', 'ID Used Before', 'ለአንድ ምግብ ሁለት ጊዜ አይፈቀድም', result.student?.name || '');
+        statusEl.textContent = '📷 Opening camera...';
+        const stream = await navigator.mediaDevices.getUserMedia({
+          video: { facingMode: 'user', width: 640, height: 480 }
+        });
+        video.srcObject = stream;
+
+        statusEl.textContent = '✅ Ready — Position your face in the circle';
+        btn.disabled = false;
+      } catch (e) {
+        console.error(e);
+        statusEl.innerHTML = '<span style="color: var(--danger);">❌ Camera or face model unavailable</span>';
+        ui.showStatus('err', '📷', 'Camera Error', 'Please allow camera access and reload');
+      }
+    }
+
+    window.verifyNow = async function() {
+      if (busy) return;
+      busy = true;
+
+      const btn = document.getElementById('scanBtn');
+      btn.disabled = true;
+      btn.textContent = '⏳ Verifying...';
+
+      try {
+        const descriptor = await faceHelper.captureDescriptor(video);
+
+        if (!descriptor) {
+          ui.showStatus('err', '❌', 'Face Not Detected', 'Position your face in the circle and try again');
           ui.beep(false);
-        } else if (result.reason === 'not_cafe_user') {
-          ui.showStatus('err', '🚫', 'Not Cafe User', 'የካፌቴሪያ ፈቃድ የለዎትም', result.student?.name || '');
+          return;
+        }
+
+        const res = await fetch('/api/verify-face', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            descriptor,
+            mode: 'cafeteria',
+            location: 'main-cafeteria'
+          })
+        });
+        const data = await res.json();
+
+        if (data.allowed) {
+          const meal = { breakfast: 'Breakfast', lunch: 'Lunch', dinner: 'Dinner', 'off-hours': 'Meal' }[data.mealType] || 'Meal';
+          ui.showStatus('ok', '🍽️', 'Access Granted', `${meal} · Enjoy your meal`, data.student?.name || '');
+          ui.beep(true);
+          ui.speak('Access granted. Enjoy your meal');
+        } else if (data.reason === 'already_used') {
+          ui.showStatus('warn', '⛔', 'Already Used', 'You already had this meal', data.student?.name || '');
+          ui.beep(false);
+          ui.speak('You already had this meal');
+        } else if (data.reason === 'not_cafe_user') {
+          ui.showStatus('err', '🚫', 'No Cafeteria Access', 'Not registered for cafeteria', data.student?.name || '');
+          ui.beep(false);
+        } else if (data.reason === 'not_recognized') {
+          ui.showStatus('err', '❓', 'Face Not Recognized', 'Your face is not registered', '');
+          ui.beep(false);
+          ui.speak('Face not recognized');
+        } else if (data.reason === 'not_approved') {
+          ui.showStatus('err', '⏳', 'Not Approved', 'Registration pending admin approval', data.student?.name || '');
           ui.beep(false);
         } else {
-          ui.showStatus('err', '🚫', 'Not Allowed', result.message || '');
+          ui.showStatus('err', '🚫', 'Access Denied', data.message || '');
           ui.beep(false);
         }
       } catch (e) {
-        ui.showStatus('err', '⚠️', 'Network Error', 'ኢንተርኔት አልተገኘም');
-        ui.beep(false);
+        console.error(e);
+        ui.showStatus('err', '⚠️', 'Error', 'Try again');
+      } finally {
+        btn.disabled = false;
+        btn.textContent = '📷 Verify My Face';
+        busy = false;
       }
+    };
 
-      setTimeout(async () => { processing = false; try { await scanner.resume(); } catch {} }, 3000);
-    });
-
-    scanner.start().catch(err => {
-      ui.showStatus('err', '📷', 'Camera Error', 'ካሜራ ሊከፈት አልቻለም');
-    });
-
-    let paused = false;
-    document.getElementById('toggleBtn').addEventListener('click', async (e) => {
-      if (paused) { await scanner.resume(); e.target.textContent = '⏸ አቁም'; }
-      else { await scanner.pause(); e.target.textContent = '▶ ቀጥል'; }
-      paused = !paused;
-    });
+    init();
   </script>
 </body>
 </html>
