@@ -1,6 +1,3 @@
-// ============================================================
-// API Client
-// ============================================================
 export const api = {
   async verify(raw, mode, options = {}) {
     const res = await fetch('/api/verify', {
@@ -47,28 +44,6 @@ export const api = {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ fan, fin, descriptor }),
-    });
-    if (!res.ok) throw new Error('Network error');
-    return res.json();
-  },
-
-  async stats(key) {
-    const res = await fetch(`/api/stats?key=${encodeURIComponent(key)}`);
-    if (!res.ok) throw new Error('Unauthorized or error');
-    return res.json();
-  },
-
-  async pendingList(key) {
-    const res = await fetch(`/api/admin/pending?key=${encodeURIComponent(key)}`);
-    if (!res.ok) throw new Error('Unauthorized or error');
-    return res.json();
-  },
-
-  async approve(key, rowIndex, decision) {
-    const res = await fetch('/api/admin/approve', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ key, rowIndex, decision }),
     });
     if (!res.ok) throw new Error('Network error');
     return res.json();
