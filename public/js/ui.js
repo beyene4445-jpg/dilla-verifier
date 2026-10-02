@@ -1,3 +1,6 @@
+// ============================================================
+// UI Helpers
+// ============================================================
 export const ui = {
   showStatus(type, icon, title, subtitle, extra = '') {
     const el = document.getElementById('status');
@@ -23,6 +26,8 @@ export const ui = {
       const u = new SpeechSynthesisUtterance(text);
       u.lang = lang;
       u.rate = 1.0;
+      u.pitch = 1.0;
+      u.volume = 1.0;
       speechSynthesis.speak(u);
     } catch {}
   },
@@ -32,11 +37,23 @@ export const ui = {
       const ctx = new (window.AudioContext || window.webkitAudioContext)();
       const osc = ctx.createOscillator();
       const gain = ctx.createGain();
-      osc.connect(gain); gain.connect(ctx.destination);
+      osc.connect(gain);
+      gain.connect(ctx.destination);
       osc.frequency.value = ok ? 880 : 220;
       gain.gain.value = 0.1;
       osc.start();
-      setTimeout(() => { osc.stop(); ctx.close(); }, ok ? 120 : 400);
+      setTimeout(() => {
+        osc.stop();
+        ctx.close();
+      }, ok ? 120 : 400);
     } catch {}
+  },
+
+  toast(msg, ms = 2200) {
+    const t = document.createElement('div');
+    t.className = 'toast';
+    t.textContent = msg;
+    document.body.appendChild(t);
+    setTimeout(() => t.remove(), ms);
   },
 };
