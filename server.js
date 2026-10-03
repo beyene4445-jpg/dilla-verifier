@@ -33,12 +33,11 @@ const DRIVE_FOLDER_ID = process.env.DRIVE_FOLDER_ID;
 const SHEET_WEBAPP_URL = process.env.SHEET_WEBAPP_URL;
 
 // ============================================================
-// Fayda QR Parser
+// Fayda QR Parser (FAN-only)
 // ============================================================
 function parseFaydaQR(raw) {
   if (!raw || typeof raw !== 'string') return null;
 
-  // Direct JSON
   try {
     const data = JSON.parse(raw);
     if (data && typeof data === 'object') {
@@ -52,7 +51,6 @@ function parseFaydaQR(raw) {
     }
   } catch {}
 
-  // Base64 decoded
   try {
     const decoded = Buffer.from(raw, 'base64').toString('utf-8');
     try {
@@ -67,7 +65,6 @@ function parseFaydaQR(raw) {
     } catch {}
   } catch {}
 
-  // URL query params
   try {
     if (raw.startsWith('http')) {
       const url = new URL(raw);
@@ -77,7 +74,6 @@ function parseFaydaQR(raw) {
     }
   } catch {}
 
-  // Separated values
   const separators = ['|', ',', ';', '\t'];
   for (const sep of separators) {
     if (raw.includes(sep)) {
@@ -91,7 +87,6 @@ function parseFaydaQR(raw) {
     }
   }
 
-  // Plain number = FAN
   return { fan: raw.trim(), fin: null, name: null, birthdate: null, gender: null };
 }
 
@@ -134,13 +129,13 @@ async function getAllRegistry() {
   }
 }
 
-async function findByFanFin(fan, fin) {
+async function findByFan(fan) {
   const rows = await getAllRegistry();
   if (rows.length < 2) return null;
 
   for (let i = 1; i < rows.length; i++) {
     const row = rows[i];
-    if ((fan && row[0] === fan) || (fin && row[1] === fin)) {
+    if (fan && row[0] === fan) {
       return {
         rowIndex: i + 1,
         fan: row[0] || '',
@@ -202,7 +197,7 @@ async function findByFace(descriptor, threshold = 0.55) {
   return { match: null, best: bestDistance };
 }
 
-async function verifyAgainstDU(fan, fin) {
+async function verifyAgainstDU(fan) {
   try {
     const res = await sheets.spreadsheets.values.get({
       spreadsheetId: SHEET_ID,
@@ -211,9 +206,10 @@ async function verifyAgainstDU(fan, fin) {
     const rows = res.data.values || [];
     if (rows.length < 2) return null;
 
+    const trimmed = String(fan).trim();
     for (let i = 1; i < rows.length; i++) {
       const r = rows[i];
-      if ((fan && r[0] === fan) || (fin && r[1] === fin)) {
+      if (String(r[0] || '').trim() === trimmed) {
         return { fan: r[0] || '', fin: r[1] || '', name: r[2] || '', status: r[3] || '' };
       }
     }
@@ -301,26 +297,30 @@ async function uploadToDrive(base64Data, filename, mimeType = 'image/jpeg') {
 }
 
 // ============================================================
-// API: Parse Fayda (QR OR plain FAN/FIN)
+// API: Parse Fayda (FAN only, 16 digits)
 // ============================================================
 app.post('/api/parse-fayda', async (req, res) => {
   const { raw } = req.body;
-  if (!raw) return res.json({ ok: false, message: 'FAN or FIN required' });
+  if (!raw) return res.json({ ok: false, message: 'FAN is required' });
 
   const parsed = parseFaydaQR(raw);
 
-  if (parsed && parsed.fan && /^\d{8,}$/.test(String(parsed.fan))) {
-    return res.json({ ok: true, ...parsed });
+  if (parsed && parsed.fan && /^\d{16}$/.test(String(parsed.fan).trim())) {
+    return res.json({ ok: true, fan: String(parsed.fan).trim(), name: parsed.name || '', birthdate: parsed.birthdate || '', gender: parsed.gender || '' });
   }
 
-  const trimmed = String(raw).trim();
-  const duRecord = await verifyAgainstDU(trimmed, trimmed);
+  const trimmed = String(raw).trim().replace(/\s+/g, '');
+
+  if (!/^\d{16}$/.test(trimmed)) {
+    return res.json({ ok: false, message: 'FAN must be exactly 16 digits' });
+  }
+
+  const duRecord = await verifyAgainstDU(trimmed);
 
   if (duRecord) {
     return res.json({
       ok: true,
-      fan: duRecord.fan || trimmed,
-      fin: duRecord.fin || '',
+      fan: trimmed,
       name: duRecord.name || '',
       birthdate: '',
       gender: '',
@@ -330,7 +330,6 @@ app.post('/api/parse-fayda', async (req, res) => {
   return res.json({
     ok: true,
     fan: trimmed,
-    fin: '',
     name: '',
     birthdate: '',
     gender: '',
@@ -338,21 +337,26 @@ app.post('/api/parse-fayda', async (req, res) => {
 });
 
 // ============================================================
-// API: Register (pending — admin verifies)
+// API: Register (FAN only)
 // ============================================================
 app.post('/api/register', async (req, res) => {
   try {
     const {
-      type, fan, fin, name, universityId, phone, region, gender, birthdate,
+      type, fan, name, universityId, phone, region, gender, birthdate,
       college, department, year, nationalIdImage,
     } = req.body;
 
     if (!name || !phone || !region) {
       return res.json({ ok: false, message: 'Name, phone and region are required' });
     }
-    if (!fan && !fin) {
-      return res.json({ ok: false, message: 'FAN or FIN is required' });
+
+    if (!fan) {
+      return res.json({ ok: false, message: 'FAN is required' });
     }
+    if (!/^\d{16}$/.test(String(fan).trim())) {
+      return res.json({ ok: false, message: 'FAN must be exactly 16 digits' });
+    }
+
     if (!type || !['staff', 'noncafe', 'cafe'].includes(type)) {
       return res.json({ ok: false, message: 'Invalid registration type' });
     }
@@ -360,17 +364,17 @@ app.post('/api/register', async (req, res) => {
       return res.json({ ok: false, message: 'National ID photo is required for cafeteria' });
     }
 
-    const existing = await findByFanFin(fan, fin);
+    const existing = await findByFan(fan);
     if (existing) {
       return res.json({
         ok: false,
-        message: 'This person is already registered. Please contact admin.',
+        message: 'This FAN is already registered. Please contact admin.',
       });
     }
 
     let nationalIdUrl = '';
     if (nationalIdImage) {
-      const filename = `national-id-${fan || fin}-${Date.now()}.jpg`;
+      const filename = `national-id-${fan}-${Date.now()}.jpg`;
       try {
         nationalIdUrl = await uploadToDrive(nationalIdImage, filename);
       } catch (e) {
@@ -379,7 +383,7 @@ app.post('/api/register', async (req, res) => {
     }
 
     const row = [
-      fan || '', fin || '', name || '', universityId || '',
+      fan || '', '', name || '', universityId || '',
       department || '', year || '', phone || '', region || '',
       gender || '', birthdate || '', college || '', department || '',
       type || '', '', '', nationalIdUrl,
@@ -393,7 +397,6 @@ app.post('/api/register', async (req, res) => {
       requestBody: { values: [row] },
     });
 
-    // Notify admin via Apps Script webhook
     if (SHEET_WEBAPP_URL) {
       try {
         await fetch(SHEET_WEBAPP_URL, {
@@ -401,7 +404,7 @@ app.post('/api/register', async (req, res) => {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             action: 'new_registration',
-            name, fan: fan || '', fin: fin || '',
+            name, fan,
             phone, region, type,
             college: college || '', department: department || '',
             universityId: universityId || '',
@@ -424,49 +427,22 @@ app.post('/api/register', async (req, res) => {
 });
 
 // ============================================================
-// API: Update Face Descriptor
-// ============================================================
-app.post('/api/update-face', async (req, res) => {
-  try {
-    const { fan, fin, descriptor } = req.body;
-
-    if (!fan && !fin) return res.json({ ok: false, message: 'FAN or FIN required' });
-    if (!descriptor || !Array.isArray(descriptor) || descriptor.length !== 128) {
-      return res.json({ ok: false, message: 'Valid face descriptor required' });
-    }
-
-    const student = await findByFanFin(fan, fin);
-    if (!student) return res.json({ ok: false, message: 'Student not found' });
-
-    await sheets.spreadsheets.values.update({
-      spreadsheetId: SHEET_ID,
-      range: `Registry!N${student.rowIndex}`,
-      valueInputOption: 'USER_ENTERED',
-      requestBody: { values: [[JSON.stringify(descriptor)]] },
-    });
-
-    res.json({ ok: true, message: 'Face registered' });
-  } catch (err) {
-    console.error('update-face:', err);
-    res.status(500).json({ ok: false, message: err.message });
-  }
-});
-
-// ============================================================
-// API: Verify QR (gate + cafeteria)
+// API: Verify QR (FAN only, gate + cafeteria)
 // ============================================================
 app.post('/api/verify', async (req, res) => {
   try {
     const { raw, mode, gate, location } = req.body;
     const parsed = parseFaydaQR(raw);
 
-    if (!parsed || (!parsed.fan && !parsed.fin)) {
-      return res.json({ allowed: false, reason: 'invalid_qr', message: 'Invalid QR' });
+    const fan = parsed && parsed.fan ? String(parsed.fan).trim() : String(raw || '').trim();
+
+    if (!/^\d{16}$/.test(fan)) {
+      return res.json({ allowed: false, reason: 'invalid_qr', message: 'FAN must be 16 digits' });
     }
 
-    const student = await findByFanFin(parsed.fan, parsed.fin);
+    const student = await findByFan(fan);
     if (!student) {
-      await logGate(parsed.fan, parsed.name, 'not_registered', gate || location);
+      await logGate(fan, parsed?.name, 'not_registered', gate || location);
       return res.json({ allowed: false, reason: 'not_registered', message: 'Not registered' });
     }
 
@@ -553,6 +529,38 @@ app.post('/api/verify-face', async (req, res) => {
 });
 
 // ============================================================
+// API: Update Face Descriptor
+// ============================================================
+app.post('/api/update-face', async (req, res) => {
+  try {
+    const { fan, descriptor } = req.body;
+
+    if (!fan) return res.json({ ok: false, message: 'FAN required' });
+    if (!/^\d{16}$/.test(String(fan).trim())) {
+      return res.json({ ok: false, message: 'FAN must be 16 digits' });
+    }
+    if (!descriptor || !Array.isArray(descriptor) || descriptor.length !== 128) {
+      return res.json({ ok: false, message: 'Valid face descriptor required' });
+    }
+
+    const student = await findByFan(fan);
+    if (!student) return res.json({ ok: false, message: 'Student not found' });
+
+    await sheets.spreadsheets.values.update({
+      spreadsheetId: SHEET_ID,
+      range: `Registry!N${student.rowIndex}`,
+      valueInputOption: 'USER_ENTERED',
+      requestBody: { values: [[JSON.stringify(descriptor)]] },
+    });
+
+    res.json({ ok: true, message: 'Face registered' });
+  } catch (err) {
+    console.error('update-face:', err);
+    res.status(500).json({ ok: false, message: err.message });
+  }
+});
+
+// ============================================================
 // API: Stats (Admin)
 // ============================================================
 app.get('/api/stats', async (req, res) => {
@@ -596,7 +604,7 @@ app.get('/api/stats', async (req, res) => {
 });
 
 // ============================================================
-// API: Pending list
+// API: Pending list (Admin)
 // ============================================================
 app.get('/api/admin/pending', async (req, res) => {
   try {
@@ -610,10 +618,15 @@ app.get('/api/admin/pending', async (req, res) => {
       .filter(({ row }) => (row[16] || '').toLowerCase() === 'pending')
       .map(({ rowIndex, row }) => ({
         rowIndex,
-        fan: row[0] || '', fin: row[1] || '', name: row[2] || '',
-        universityId: row[3] || '', phone: row[6] || '', region: row[7] || '',
-        college: row[10] || '', department: row[11] || '',
-        userType: row[12] || '', nationalIdUrl: row[15] || '',
+        fan: row[0] || '',
+        name: row[2] || '',
+        universityId: row[3] || '',
+        phone: row[6] || '',
+        region: row[7] || '',
+        college: row[10] || '',
+        department: row[11] || '',
+        userType: row[12] || '',
+        nationalIdUrl: row[15] || '',
         createdAt: row[18] || '',
       }));
 
@@ -624,7 +637,7 @@ app.get('/api/admin/pending', async (req, res) => {
 });
 
 // ============================================================
-// API: Approve / Reject
+// API: Approve / Reject (Admin)
 // ============================================================
 app.post('/api/admin/approve', async (req, res) => {
   try {
@@ -649,7 +662,7 @@ app.post('/api/admin/approve', async (req, res) => {
 });
 
 // ============================================================
-// API: Auto-verify pending against DU_Reference
+// API: Auto-verify pending
 // ============================================================
 app.post('/api/admin/auto-verify', async (req, res) => {
   try {
@@ -686,11 +699,11 @@ app.post('/api/admin/auto-verify', async (req, res) => {
       const status = (row[16] || '').toLowerCase();
       if (status !== 'pending') continue;
 
-      const fan = row[0], fin = row[1];
+      const fan = String(row[0] || '').trim();
 
       let found = false;
       for (let j = 1; j < duRows.length; j++) {
-        if ((fan && duRows[j][0] === fan) || (fin && duRows[j][1] === fin)) {
+        if (String(duRows[j][0] || '').trim() === fan) {
           found = true;
           break;
         }
