@@ -1,3 +1,51 @@
+// ============================================================
+// DEBUG — check environment (remove after fixing)
+// ============================================================
+app.get('/api/debug', (req, res) => {
+  const b64 = process.env.GOOGLE_SERVICE_ACCOUNT_B64 || '';
+  const json = process.env.GOOGLE_SERVICE_ACCOUNT || '';
+
+  let decodeResult = 'not attempted';
+  let parsedEmail = null;
+  let parsedProject = null;
+
+  if (b64 && b64.length > 100) {
+    try {
+      let decoded = Buffer.from(b64, 'base64').toString('utf-8');
+      if (decoded.charCodeAt(0) === 0xFEFF) decoded = decoded.substring(1);
+
+      const parsed = JSON.parse(decoded);
+      parsedEmail = parsed.client_email || null;
+      parsedProject = parsed.project_id || null;
+      decodeResult = 'success';
+    } catch (e) {
+      decodeResult = 'failed: ' + e.message;
+    }
+  }
+
+  res.json({
+    env_check: {
+      GOOGLE_SERVICE_ACCOUNT_B64_exists: !!b64,
+      GOOGLE_SERVICE_ACCOUNT_B64_length: b64.length,
+      GOOGLE_SERVICE_ACCOUNT_B64_first30: b64.substring(0, 30),
+      GOOGLE_SERVICE_ACCOUNT_exists: !!json,
+      GOOGLE_SERVICE_ACCOUNT_length: json.length,
+    },
+    decode: {
+      result: decodeResult,
+      client_email: parsedEmail,
+      project_id: parsedProject,
+    },
+    other_env: {
+      SHEET_ID_exists: !!process.env.SHEET_ID,
+      SHEET_ID_length: (process.env.SHEET_ID || '').length,
+      ADMIN_KEY_exists: !!process.env.ADMIN_KEY,
+      DRIVE_FOLDER_ID_exists: !!process.env.DRIVE_FOLDER_ID,
+      SHEET_WEBAPP_URL_exists: !!process.env.SHEET_WEBAPP_URL,
+    },
+  });
+});
+
 import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
