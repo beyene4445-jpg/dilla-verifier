@@ -5,48 +5,83 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <title>Capture Face · Dilla Verifier</title>
   <meta name="theme-color" content="#020617" />
+  <link rel="manifest" href="/manifest.json" />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="/css/app.css" />
   <script src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"></script>
   <style>
     .video-container {
       background: #000; border-radius: 16px; overflow: hidden;
-      position: relative; aspect-ratio: 4/3; margin-bottom: 16px;
+      position: relative; margin-bottom: 16px;
+      width: 100%; aspect-ratio: 4/3;
     }
-    .video-container video { width: 100%; height: 100%; object-fit: cover; }
+    .video-container video {
+      width: 100%; height: 100%;
+      object-fit: cover;
+      display: block;
+    }
     .face-guide {
       position: absolute; inset: 0; pointer-events: none;
       display: flex; align-items: center; justify-content: center;
     }
     .face-guide .oval {
-      width: 55%; height: 75%;
-      border: 3px dashed rgba(16, 185, 129, 0.6);
+      width: 50%; height: 70%;
+      border: 3px dashed rgba(16, 185, 129, 0.7);
       border-radius: 50%;
-      box-shadow: 0 0 30px rgba(16, 185, 129, 0.3);
+      box-shadow: 0 0 30px rgba(16, 185, 129, 0.4);
+      animation: pulse 2s ease-in-out infinite;
     }
+    @keyframes pulse {
+      0%, 100% { box-shadow: 0 0 30px rgba(16, 185, 129, 0.4); }
+      50% { box-shadow: 0 0 50px rgba(16, 185, 129, 0.8); }
+    }
+    .status-badge {
+      padding: 8px 16px;
+      border-radius: 999px;
+      font-size: 13px;
+      font-weight: 600;
+      display: inline-block;
+      margin-top: 8px;
+    }
+    .status-ready { background: rgba(245, 158, 11, 0.2); color: #fbbf24; }
+    .status-good { background: rgba(16, 185, 129, 0.2); color: #6ee7b7; }
+    .status-error { background: rgba(239, 68, 68, 0.2); color: #fca5a5; }
+    .detection-dot {
+      position: absolute; top: 12px; right: 12px;
+      width: 12px; height: 12px; border-radius: 50%;
+      background: #ef4444;
+      transition: background 0.3s;
+    }
+    .detection-dot.active { background: #10b981; box-shadow: 0 0 12px #10b981; }
   </style>
 </head>
 <body>
   <div class="container">
     <div class="header">
-      <h1>📷 Capture Face</h1>
-      <p>Register your face for cafeteria access</p>
+      <h1>📷 Fast Face Capture</h1>
+      <p>Dilla University</p>
     </div>
 
     <div class="card">
-      <label style="display: block; margin-bottom: 6px; font-size: 13px; color: var(--text-2);">FAN *</label>
-      <input class="input" id="fan" placeholder="FAN" style="margin-bottom: 12px;" />
-
-      <label style="display: block; margin-bottom: 6px; font-size: 13px; color: var(--text-2);">FIN</label>
-      <input class="input" id="fin" placeholder="FIN" style="margin-bottom: 16px;" />
+      <label class="lbl" style="display: block; margin-bottom: 6px; font-size: 13px; color: var(--text-2);">FAN *</label>
+      <input
+        class="input"
+        id="fan"
+        placeholder="16-digit FAN"
+        maxlength="16"
+        inputmode="numeric"
+        style="margin-bottom: 16px; letter-spacing: 2px; font-family: monospace;"
+        oninput="this.value = this.value.replace(/\D/g, '').substring(0, 16)"
+      />
 
       <div class="video-container">
         <video id="video" autoplay muted playsinline></video>
         <div class="face-guide"><div class="oval"></div></div>
+        <div class="detection-dot" id="detectionDot"></div>
       </div>
 
-      <div id="faceStatus" style="text-align: center; padding: 12px; font-size: 14px; color: var(--text-2);">
-        ⏳ Loading camera...
+      <div style="text-align: center; margin-bottom: 12px;">
+        <span id="faceStatus" class="status-badge status-ready">⏳ Loading...</span>
       </div>
 
       <button class="btn btn-primary btn-block" id="captureBtn" onclick="captureAndSave()" style="padding: 16px;" disabled>
@@ -64,6 +99,7 @@
     import { faceHelper } from '/js/face-helper.js';
 
     let video;
+    let liveCheckInterval = null;
 
     async function init() {
       video = document.getElementById('video');
@@ -71,52 +107,92 @@
       const btn = document.getElementById('captureBtn');
 
       try {
-        statusEl.textContent = '⏳ Loading face models...';
+        statusEl.textContent = '⏳ Loading models...';
+        statusEl.className = 'status-badge status-ready';
         await faceHelper.loadModels();
 
         statusEl.textContent = '📷 Opening camera...';
         const stream = await navigator.mediaDevices.getUserMedia({
-          video: { facingMode: 'user', width: 640, height: 480 },
+          video: {
+            facingMode: 'user',
+            width: { ideal: 1280 },       // Higher = wider
+            height: { ideal: 960 },
+            aspectRatio: { ideal: 4 / 3 },
+          },
         });
         video.srcObject = stream;
 
-        statusEl.textContent = '✅ Ready — Position your face in the circle';
+        statusEl.textContent = '🔍 Detecting face...';
         btn.disabled = false;
+
+        // Start live detection loop (checks every 800ms)
+        startLiveCheck();
       } catch (e) {
         console.error(e);
-        statusEl.innerHTML = '<span style="color: var(--danger);">❌ Camera or models unavailable</span>';
+        statusEl.textContent = '❌ Camera unavailable';
+        statusEl.className = 'status-badge status-error';
       }
+    }
+
+    function startLiveCheck() {
+      const dot = document.getElementById('detectionDot');
+      const statusEl = document.getElementById('faceStatus');
+
+      if (liveCheckInterval) clearInterval(liveCheckInterval);
+
+      liveCheckInterval = setInterval(async () => {
+        try {
+          const detection = await faceHelper.quickDetect(video);
+
+          if (detection) {
+            dot.classList.add('active');
+            statusEl.textContent = '✅ Face detected — click Capture';
+            statusEl.className = 'status-badge status-good';
+          } else {
+            dot.classList.remove('active');
+            statusEl.textContent = '🔍 Position face in circle';
+            statusEl.className = 'status-badge status-ready';
+          }
+        } catch (e) {
+          // silent
+        }
+      }, 800);
     }
 
     window.captureAndSave = async function() {
       const fan = document.getElementById('fan').value.trim();
-      const fin = document.getElementById('fin').value.trim();
       const btn = document.getElementById('captureBtn');
 
-      if (!fan && !fin) {
-        return ui.showStatus('err', '⚠️', 'FAN or FIN required', '');
+      if (!/^\d{16}$/.test(fan)) {
+        return ui.showStatus('err', '⚠️', 'FAN Required', 'Enter 16-digit FAN');
       }
 
       btn.disabled = true;
-      btn.textContent = '⏳ Capturing...';
+      btn.textContent = '⏳ Capturing (1-2 sec)...';
 
       try {
+        const startTime = Date.now();
         const descriptor = await faceHelper.captureDescriptor(video);
+        const elapsed = Date.now() - startTime;
+        console.log(`Face captured in ${elapsed}ms`);
+
         if (!descriptor) {
-          ui.showStatus('err', '❌', 'Face Not Detected', 'Position your face in the circle');
+          ui.showStatus('err', '❌', 'Face Not Detected', 'Position face in circle and try again');
           ui.beep(false);
+          btn.disabled = false;
+          btn.textContent = '📸 Capture Face';
           return;
         }
 
         const res = await fetch('/api/update-face', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ fan, fin, descriptor }),
+          body: JSON.stringify({ fan, descriptor }),
         });
         const data = await res.json();
 
         if (data.ok) {
-          ui.showStatus('ok', '✅', 'Face Registered', 'You can now use cafeteria face access');
+          ui.showStatus('ok', '✅', 'Face Registered', `Captured in ${elapsed}ms`);
           ui.beep(true);
           ui.speak('Face registered successfully');
         } else {
