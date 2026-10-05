@@ -7,6 +7,7 @@
   <meta name="theme-color" content="#020617" />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="/css/app.css" />
+  <script src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"></script>
   <style>
     .lbl { display: block; margin-bottom: 6px; font-size: 13px; color: var(--text-2); font-weight: 500; }
     .step-title {
@@ -84,6 +85,32 @@
       font-family: monospace;
       font-size: 16px;
     }
+    .video-container {
+      background: #000; border-radius: 16px; overflow: hidden;
+      position: relative; aspect-ratio: 4/3; margin-bottom: 16px;
+    }
+    .video-container video { width: 100%; height: 100%; object-fit: cover; display: block; }
+    .face-guide {
+      position: absolute; inset: 0; pointer-events: none;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .face-guide .oval {
+      width: 55%; height: 75%;
+      border: 3px dashed rgba(16, 185, 129, 0.6);
+      border-radius: 50%;
+      box-shadow: 0 0 30px rgba(16, 185, 129, 0.3);
+    }
+    .capture-btn {
+      background: linear-gradient(135deg, #10b981, #06b6d4);
+      color: white; border: none;
+      padding: 14px; border-radius: 12px;
+      font-weight: 700; font-size: 15px;
+      cursor: pointer; width: 100%; transition: all 0.2s;
+    }
+    .capture-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+    .capture-btn.captured {
+      background: linear-gradient(135deg, #10b981, #059669);
+    }
   </style>
 </head>
 <body>
@@ -120,63 +147,29 @@
         <button class="btn btn-ghost" onclick="backToStep1()">← Back</button>
         <h2 id="formTitle" style="margin: 16px 0; font-size: 20px;"></h2>
 
-        <!-- ============ 1. Sign in with Fayda ============ -->
+        <!-- ============ 1. FAN ============ -->
         <div class="step-title">
           <span class="num">1</span>
-          <span>Sign in with Fayda</span>
+          <span>Enter FAN</span>
         </div>
 
-        <div id="faydaStart">
-          <div class="fayda-logo">🇪🇹</div>
-          <p style="text-align: center; color: var(--text-2); font-size: 13px; margin-bottom: 16px;">
-            Verify your identity through Ethiopia's National ID
-          </p>
-
-          <button class="btn btn-primary btn-block" onclick="openFaydaPortal()" style="padding: 16px; margin-bottom: 16px;">
-            🪪 Sign in with Fayda
-          </button>
-
-          <div class="step-box"><div class="n">1</div><div class="t">Click <b>Sign in with Fayda</b></div></div>
-          <div class="step-box"><div class="n">2</div><div class="t">You'll be redirected to the <b>Fayda portal</b></div></div>
-          <div class="step-box"><div class="n">3</div><div class="t">Enter your <b>FAN</b> and get OTP</div></div>
-          <div class="step-box"><div class="n">4</div><div class="t">Return here and enter your <b>16-digit FAN</b></div></div>
+        <label class="lbl">FAN (Fayda Application Number) *</label>
+        <input
+          class="input fan-input"
+          id="fanInput"
+          placeholder="16-digit FAN"
+          maxlength="16"
+          inputmode="numeric"
+          pattern="[0-9]{16}"
+          style="margin-bottom: 6px;"
+          oninput="validateFanInput()"
+        />
+        <div id="fanHint" style="font-size: 12px; color: var(--text-2); margin-bottom: 16px; display: flex; justify-content: space-between;">
+          <span>Must be exactly 16 digits</span>
+          <span id="fanCount">0/16</span>
         </div>
 
-        <!-- FAN entry -->
-        <div id="faydaEntry" style="display: none;">
-          <label class="lbl">FAN (Fayda Application Number) *</label>
-          <input
-            class="input fan-input"
-            id="fanInput"
-            placeholder="16-digit FAN"
-            maxlength="16"
-            inputmode="numeric"
-            pattern="[0-9]{16}"
-            style="margin-bottom: 6px;"
-            oninput="validateFanInput()"
-          />
-          <div id="fanHint" style="font-size: 12px; color: var(--text-2); margin-bottom: 16px; display: flex; justify-content: space-between;">
-            <span>Must be exactly 16 digits</span>
-            <span id="fanCount">0/16</span>
-          </div>
-
-          <button class="btn btn-primary btn-block" id="verifyFanBtn" onclick="verifyFayda()" style="padding: 14px;" disabled>
-            ✅ Verify FAN
-          </button>
-
-          <div id="verifyStatus" style="text-align: center; padding: 10px; font-size: 13px; color: var(--text-2);"></div>
-        </div>
-
-        <!-- Verified display -->
-        <div id="verifiedBox" style="display: none;">
-          <div class="info-box">
-            <div style="font-size: 12px; color: var(--text-2); margin-bottom: 8px;">
-              ✅ Identity Verified
-            </div>
-            <div class="row"><span class="k">Name</span><span class="v" id="verifiedName">—</span></div>
-            <div class="row"><span class="k">FAN</span><span class="v" id="verifiedFan">—</span></div>
-          </div>
-        </div>
+        <div id="verifyStatus" style="text-align: center; padding: 10px; font-size: 13px; color: var(--text-2);"></div>
 
         <div class="divider"></div>
 
@@ -245,11 +238,36 @@
         <label class="lbl">Date of Birth</label>
         <input class="input" id="fBirthdate" type="date" style="margin-bottom: 12px;" />
 
-        <!-- ============ 3. National ID (Cafeteria only) ============ -->
+        <div class="divider"></div>
+
+        <!-- ============ 3. Face Capture ============ -->
+        <div class="step-title">
+          <span class="num">3</span>
+          <span>Face Registration *</span>
+        </div>
+
+        <div class="video-container">
+          <video id="video" autoplay muted playsinline></video>
+          <div class="face-guide"><div class="oval"></div></div>
+        </div>
+
+        <button class="capture-btn" id="captureBtn" onclick="captureFace()" disabled>
+          📸 Capture Face
+        </button>
+
+        <div id="faceStatus" style="text-align: center; padding: 12px; font-size: 13px; color: var(--text-2);">
+          ⏳ Loading face models...
+        </div>
+
+        <div id="faceSuccess" style="display: none; text-align: center;">
+          <div class="badge-success">✅ Face captured successfully</div>
+        </div>
+
+        <!-- ============ 4. National ID (Cafeteria only) ============ -->
         <div id="nationalIdSection" style="display: none;">
           <div class="divider"></div>
           <div class="step-title">
-            <span class="num">3</span>
+            <span class="num">4</span>
             <span>National ID Photo *</span>
           </div>
 
@@ -279,8 +297,7 @@
 
   <script type="module">
     import { ui } from '/js/ui.js';
-
-    const FAYDA_PORTAL_URL = 'https://id.gov.et/';
+    import { faceHelper } from '/js/face-helper.js';
 
     const COLLEGES = {
       'College of Health and Medical Sciences': [
@@ -314,11 +331,12 @@
     };
 
     let currentType = '';
-    let verifiedData = { fan: '', name: '' };
     let nationalIdBase64 = '';
-    let isVerified = false;
+    let faceDescriptor = null;
+    let videoStream = null;
 
-    window.chooseType = function(type) {
+    // ============ Choose type ============
+    window.chooseType = async function(type) {
       currentType = type;
       document.getElementById('step1').style.display = 'none';
       document.getElementById('step2').style.display = 'block';
@@ -333,6 +351,7 @@
       document.getElementById('studentOnly').style.display = type === 'staff' ? 'none' : 'block';
       document.getElementById('nationalIdSection').style.display = type === 'cafe' ? 'block' : 'none';
 
+      // Populate colleges
       const collegeSelect = document.getElementById('fCollege');
       collegeSelect.innerHTML = '<option value="">-- Select College --</option>';
       Object.keys(COLLEGES).forEach(name => {
@@ -342,6 +361,7 @@
         collegeSelect.appendChild(opt);
       });
 
+      // National ID preview
       document.getElementById('fNationalId').addEventListener('change', (e) => {
         const file = e.target.files[0];
         if (!file) return;
@@ -358,26 +378,23 @@
         };
         reader.readAsDataURL(file);
       });
+
+      // Start camera for face
+      await startFaceCamera();
     };
 
     window.backToStep1 = function() {
+      stopFaceCamera();
       document.getElementById('step1').style.display = 'block';
       document.getElementById('step2').style.display = 'none';
       document.getElementById('status').className = 'status hidden';
     };
 
-    window.openFaydaPortal = function() {
-      window.open(FAYDA_PORTAL_URL, '_blank', 'noopener,noreferrer');
-      document.getElementById('faydaStart').style.display = 'none';
-      document.getElementById('faydaEntry').style.display = 'block';
-      ui.beep(true);
-    };
-
+    // ============ FAN validation ============
     window.validateFanInput = function() {
       const input = document.getElementById('fanInput');
       const count = document.getElementById('fanCount');
       const hint = document.getElementById('fanHint');
-      const btn = document.getElementById('verifyFanBtn');
 
       let value = input.value.replace(/\D/g, '');
       if (value.length > 16) value = value.substring(0, 16);
@@ -389,58 +406,13 @@
       if (isValid) {
         hint.style.color = '#10b981';
         count.style.color = '#10b981';
-        btn.disabled = false;
       } else {
         hint.style.color = value.length > 0 ? '#f59e0b' : 'var(--text-2)';
         count.style.color = value.length > 0 ? '#f59e0b' : 'var(--text-2)';
-        btn.disabled = true;
       }
     };
 
-    window.verifyFayda = async function() {
-      const fan = document.getElementById('fanInput').value.trim();
-      const status = document.getElementById('verifyStatus');
-
-      if (!/^\d{16}$/.test(fan)) {
-        status.innerHTML = '<span style="color: var(--danger);">❌ FAN must be exactly 16 digits</span>';
-        ui.beep(false);
-        return;
-      }
-
-      status.textContent = '⏳ Verifying...';
-
-      try {
-        const res = await fetch('/api/parse-fayda', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ raw: fan }),
-        });
-        const data = await res.json();
-
-        if (!data.ok) {
-          status.innerHTML = `<span style="color: var(--danger);">❌ ${data.message || 'Invalid FAN'}</span>`;
-          ui.beep(false);
-          return;
-        }
-
-        verifiedData = data;
-        isVerified = true;
-
-        if (data.name) document.getElementById('fName').value = data.name;
-
-        document.getElementById('faydaEntry').style.display = 'none';
-        document.getElementById('verifiedBox').style.display = 'block';
-        document.getElementById('verifiedName').textContent = data.name || '—';
-        document.getElementById('verifiedFan').textContent = data.fan || '—';
-
-        status.textContent = '';
-        ui.beep(true);
-        ui.speak('Identity verified');
-      } catch (e) {
-        status.innerHTML = '<span style="color: var(--danger);">❌ Network error</span>';
-      }
-    };
-
+    // ============ Departments ============
     window.updateDepartments = function() {
       const college = document.getElementById('fCollege').value;
       const deptSelect = document.getElementById('fDepartment');
@@ -459,10 +431,78 @@
       }
     };
 
+    // ============ Face camera ============
+    async function startFaceCamera() {
+      const video = document.getElementById('video');
+      const statusEl = document.getElementById('faceStatus');
+      const btn = document.getElementById('captureBtn');
+
+      try {
+        statusEl.textContent = '⏳ Loading face models...';
+        await faceHelper.loadModels();
+
+        statusEl.textContent = '📷 Opening camera...';
+        videoStream = await navigator.mediaDevices.getUserMedia({
+          video: { facingMode: 'user', width: 640, height: 480 },
+        });
+        video.srcObject = videoStream;
+
+        statusEl.textContent = '✅ Ready — Position your face in the circle';
+        btn.disabled = false;
+      } catch (e) {
+        console.error('Camera error:', e);
+        statusEl.innerHTML = '<span style="color: var(--danger);">❌ Camera or face model unavailable</span>';
+        statusEl.innerHTML = '<span style="color: var(--danger);">❌ Camera access required. Please allow and reload.</span>';
+      }
+    }
+
+    function stopFaceCamera() {
+      if (videoStream) {
+        videoStream.getTracks().forEach(t => t.stop());
+        videoStream = null;
+      }
+    }
+
+    // ============ Capture face ============
+    window.captureFace = async function() {
+      const video = document.getElementById('video');
+      const statusEl = document.getElementById('faceStatus');
+      const btn = document.getElementById('captureBtn');
+
+      try {
+        statusEl.textContent = '⏳ Analyzing face...';
+        btn.disabled = true;
+
+        const descriptor = await faceHelper.captureDescriptor(video);
+
+        if (!descriptor) {
+          statusEl.textContent = '❌ Face not detected — position your face in the circle';
+          btn.disabled = false;
+          ui.beep(false);
+          return;
+        }
+
+        faceDescriptor = descriptor;
+        statusEl.textContent = '✅ Face captured successfully!';
+        document.getElementById('faceSuccess').style.display = 'block';
+        btn.textContent = '✅ Face Captured';
+        btn.classList.add('captured');
+        ui.beep(true);
+        ui.speak('Face captured successfully');
+      } catch (e) {
+        console.error('Capture error:', e);
+        statusEl.textContent = '❌ Error: ' + e.message;
+        btn.disabled = false;
+      }
+    };
+
+    // ============ Submit ============
     window.submitRegistration = async function() {
+      const fan = document.getElementById('fanInput').value.trim();
+
       const payload = {
         type: currentType,
-        fan: verifiedData.fan || document.getElementById('fanInput').value.trim() || '',
+        fan: fan,
         name: document.getElementById('fName').value.trim(),
         universityId: document.getElementById('fUniversityId').value.trim(),
         college: document.getElementById('fCollege')?.value || '',
@@ -472,23 +512,25 @@
         region: document.getElementById('fRegion').value,
         gender: document.getElementById('fGender').value,
         birthdate: document.getElementById('fBirthdate').value,
+        faceDescriptor: faceDescriptor,
         nationalIdImage: currentType === 'cafe' ? nationalIdBase64 : '',
       };
 
-      if (!isVerified) {
-        return ui.showStatus('err', '⚠️', 'Fayda verification required', 'Please verify your FAN first');
+      // Validation
+      if (!/^\d{16}$/.test(fan)) {
+        return ui.showStatus('err', '⚠️', 'Invalid FAN', 'FAN must be exactly 16 digits');
       }
       if (!payload.name || !payload.phone || !payload.region) {
         return ui.showStatus('err', '⚠️', 'Incomplete', 'Name, phone and region are required');
       }
-      if (!/^\d{16}$/.test(payload.fan)) {
-        return ui.showStatus('err', '⚠️', 'Invalid FAN', 'FAN must be exactly 16 digits');
+      if (!payload.faceDescriptor) {
+        return ui.showStatus('err', '⚠️', 'Face Required', 'Please capture your face first');
       }
       if (currentType === 'cafe' && !payload.nationalIdImage) {
-        return ui.showStatus('err', '⚠️', 'National ID required', 'Upload your National ID photo');
+        return ui.showStatus('err', '⚠️', 'National ID Required', 'Upload your National ID photo');
       }
       if (currentType !== 'staff' && (!payload.college || !payload.department)) {
-        return ui.showStatus('err', '⚠️', 'College & Department required', 'Please select both');
+        return ui.showStatus('err', '⚠️', 'College & Department Required', 'Please select both');
       }
 
       ui.showStatus('warn', '⏳', 'Submitting...', 'Please wait');
@@ -505,15 +547,15 @@
           ui.showStatus('ok', '⏳', 'Registration Submitted',
             data.message || 'Your registration is under evaluation. It will be verified soon.');
           ui.beep(true);
-          ui.speak('Your registration is under evaluation. It will be verified soon.');
+          ui.speak('Registration successful');
           setTimeout(() => {
+            stopFaceCamera();
             backToStep1();
-            verifiedData = {};
-            isVerified = false;
+            faceDescriptor = null;
             nationalIdBase64 = '';
           }, 6000);
         } else {
-          ui.showStatus('err', '❌', 'Registration failed', data.message || 'Error');
+          ui.showStatus('err', '❌', 'Registration Failed', data.message || 'Error');
           ui.beep(false);
         }
       } catch (e) {
