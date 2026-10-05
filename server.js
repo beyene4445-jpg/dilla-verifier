@@ -254,10 +254,12 @@ async function findByFace(descriptor, threshold = 0.55) {
 
   for (let i = 1; i < rows.length; i++) {
     const row = rows[i];
-    if (!row[12]) continue;  // FaceDescriptor column
+    if (!row[12]) continue;  // FaceDescriptor = column M (index 12)
 
     try {
       const stored = JSON.parse(row[12]);
+      if (!Array.isArray(stored) || stored.length !== 128) continue;
+
       const distance = euclideanDistance(descriptor, stored);
 
       if (distance < bestDistance) {
@@ -460,17 +462,18 @@ app.post('/api/parse-fayda', async (req, res) => {
 });
 
 // ============================================================
-// API: Register (FAN only, 16 digits, 18-column format)
+// API: Register (FAN only + face required + duplicate check)
 // ============================================================
 app.post('/api/register', async (req, res) => {
   try {
     const {
       type, fan, name, universityId, phone, region, gender, birthdate,
-      college, department, year, nationalIdImage,
+      college, department, year, nationalIdImage, faceDescriptor,
     } = req.body;
 
     console.log('📝 Register request:', { type, fan, name, phone, region });
 
+    // ============ Validation ============
     if (!name || !phone || !region) {
       return res.json({ ok: false, message: 'Name, phone and region are required' });
     }
@@ -483,18 +486,47 @@ app.post('/api/register', async (req, res) => {
     if (!type || !['staff', 'noncafe', 'cafe'].includes(type)) {
       return res.json({ ok: false, message: 'Invalid registration type' });
     }
-    if (type === 'cafe' && !nationalIdImage) {
-      return res.json({ ok: false, message: 'National ID photo is required for cafeteria' });
+
+    // ============ Face required ============
+    if (!faceDescriptor || !Array.isArray(faceDescriptor) || faceDescriptor.length !== 128) {
+      return res.json({
+        ok: false,
+        message: 'Face registration is required. Please capture your face.',
+      });
     }
 
-    const existing = await findByFan(fan);
-    if (existing) {
+    // ============ Cafeteria needs National ID ============
+    if (type === 'cafe' && !nationalIdImage) {
+      return res.json({
+        ok: false,
+        message: 'National ID photo is required for cafeteria',
+      });
+    }
+
+    // ============ Check FAN already registered ============
+    const existingFan = await findByFan(fan);
+    if (existingFan) {
       return res.json({
         ok: false,
         message: 'This FAN is already registered. Please contact admin.',
       });
     }
 
+    // ============ Check FACE already registered (duplicate face) ============
+    console.log('🔍 Checking for duplicate face...');
+    const faceCheck = await findByFace(faceDescriptor, 0.55);
+
+    if (faceCheck.match) {
+      console.log('❌ Duplicate face detected:', faceCheck.match.name, 'distance:', faceCheck.best);
+      return res.json({
+        ok: false,
+        message: `This face is already registered under "${faceCheck.match.name}" (FAN: ${faceCheck.match.fan}). One face per person only.`,
+      });
+    }
+
+    console.log('✅ Face is unique');
+
+    // ============ Upload National ID ============
     let nationalIdUrl = '';
     if (nationalIdImage) {
       const filename = `national-id-${fan}-${Date.now()}.jpg`;
@@ -506,29 +538,29 @@ app.post('/api/register', async (req, res) => {
       }
     }
 
-    // 18 columns — FIN removed
+    // ============ Build 18-column row ============
     const row = [
-      fan || '',                   // A: FAN
-      name || '',                  // B: Name
-      universityId || '',          // C: UniversityID
-      department || '',            // D: Department
-      year || '',                  // E: Year
-      phone || '',                 // F: Phone
-      region || '',                // G: Region
-      gender || '',                // H: Gender
-      birthdate || '',             // I: Birthdate
-      college || '',               // J: College
-      department || '',            // K: DepartmentFull
-      type || '',                  // L: UserType
-      '',                          // M: FaceDescriptor
-      '',                          // N: FingerprintID
-      nationalIdUrl,               // O: NationalIDUrl
-      'pending',                   // P: Status
-      '',                          // Q: ApprovedAt
-      new Date().toISOString(),    // R: CreatedAt
+      fan || '',                                   // A: FAN
+      name || '',                                  // B: Name
+      universityId || '',                          // C: UniversityID
+      department || '',                            // D: Department
+      year || '',                                  // E: Year
+      phone || '',                                 // F: Phone
+      region || '',                                // G: Region
+      gender || '',                                // H: Gender
+      birthdate || '',                             // I: Birthdate
+      college || '',                               // J: College
+      department || '',                            // K: DepartmentFull
+      type || '',                                  // L: UserType
+      JSON.stringify(faceDescriptor),              // M: FaceDescriptor ✅
+      '',                                          // N: FingerprintID
+      nationalIdUrl,                               // O: NationalIDUrl
+      'pending',                                   // P: Status
+      '',                                          // Q: ApprovedAt
+      new Date().toISOString(),                    // R: CreatedAt
     ];
 
-    console.log('📊 Writing 18 columns:', row.length);
+    console.log('📊 Writing 18 columns, FaceDescriptor length:', faceDescriptor.length);
 
     await sheets.spreadsheets.values.append({
       spreadsheetId: SHEET_ID,
@@ -537,8 +569,9 @@ app.post('/api/register', async (req, res) => {
       requestBody: { values: [row] },
     });
 
-    console.log('✅ Row added to Registry');
+    console.log('✅ Row added to Registry (with face descriptor)');
 
+    // ============ Notify admin ============
     if (SHEET_WEBAPP_URL) {
       try {
         await fetch(SHEET_WEBAPP_URL, {
