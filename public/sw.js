@@ -1,4 +1,4 @@
-const CACHE = 'dilla-v3';
+const CACHE = 'dilla-v4';
 const ASSETS = [
   '/',
   '/signin',
@@ -12,12 +12,14 @@ const ASSETS = [
   '/js/ui.js',
   '/js/face-helper.js',
   '/manifest.json',
+  '/icons/icon-192.png',
+  '/icons/icon-512.png',
 ];
 
 self.addEventListener('install', (e) => {
   e.waitUntil(
     caches.open(CACHE)
-      .then((c) => c.addAll(ASSETS))
+      .then((c) => c.addAll(ASSETS).catch(err => console.warn('Some assets failed:', err)))
       .then(() => self.skipWaiting())
   );
 });
@@ -35,7 +37,6 @@ self.addEventListener('activate', (e) => {
 self.addEventListener('fetch', (e) => {
   const { request } = e;
 
-  // Skip API requests
   if (request.url.includes('/api/')) return;
   if (request.method !== 'GET') return;
 
