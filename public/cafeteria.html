@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <title>Cafeteria · Dilla Verifier</title>
   <meta name="theme-color" content="#020617" />
+  <link rel="manifest" href="/manifest.json" />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="/css/app.css" />
   <script src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"></script>
@@ -19,27 +20,41 @@
       display: flex; align-items: center; justify-content: center;
     }
     .face-guide .oval {
-      width: 55%; height: 75%;
+      width: 50%; height: 70%;
       border: 3px dashed rgba(16, 185, 129, 0.6);
       border-radius: 50%;
-      box-shadow: 0 0 30px rgba(16, 185, 129, 0.3);
     }
     .scan-btn {
       background: linear-gradient(135deg, #10b981, #06b6d4);
       color: white; border: none;
-      padding: 18px; border-radius: 14px;
-      font-size: 16px; font-weight: 700;
+      padding: 20px; border-radius: 14px;
+      font-size: 18px; font-weight: 700;
       width: 100%; cursor: pointer; transition: all 0.2s;
+      letter-spacing: 0.5px;
     }
     .scan-btn:disabled { opacity: 0.6; cursor: not-allowed; }
-    .scan-btn:hover:not(:disabled) { transform: translateY(-1px); }
+    .scan-btn:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(16,185,129,0.4); }
+    .auto-mode {
+      display: flex; align-items: center; justify-content: center;
+      gap: 8px; padding: 12px;
+      background: rgba(16, 185, 129, 0.1);
+      border: 1px solid var(--accent);
+      border-radius: 12px; margin-bottom: 12px;
+      font-size: 13px; color: #6ee7b7;
+    }
+    .auto-mode input { width: auto; }
+    .timer {
+      text-align: center; padding: 8px;
+      font-size: 12px; color: var(--text-2);
+      font-family: monospace;
+    }
   </style>
 </head>
 <body>
   <div class="container">
     <div class="header">
       <h1>🍽️ Cafeteria</h1>
-      <p>Face verification for meal access</p>
+      <p>Fast face verification (1-2 sec)</p>
     </div>
 
     <div class="card" style="padding: 12px;">
@@ -49,21 +64,26 @@
       </div>
 
       <div id="faceStatus" style="text-align: center; padding: 12px; font-size: 14px; color: var(--text-2);">
-        ⏳ Loading camera...
+        ⏳ Loading...
       </div>
     </div>
 
+    <div class="auto-mode">
+      <input type="checkbox" id="autoMode" checked />
+      <label for="autoMode">⚡ Auto-verify mode (no button press)</label>
+    </div>
+
     <button class="scan-btn" id="scanBtn" onclick="verifyNow()" disabled>
-      📷 Verify My Face
+      📷 Verify Face
     </button>
+
+    <div class="timer" id="timer"></div>
 
     <div id="status" class="status hidden"></div>
 
     <div style="margin-top: 16px;">
       <button class="btn btn-ghost btn-block" onclick="window.location.href='/'">← Back</button>
     </div>
-
-    <p class="hint">One meal per session · Face must be registered</p>
   </div>
 
   <script type="module">
@@ -72,6 +92,8 @@
 
     let video;
     let busy = false;
+    let autoInterval = null;
+    let lastVerifyTime = 0;
 
     async function init() {
       video = document.getElementById('video');
@@ -79,22 +101,50 @@
       const btn = document.getElementById('scanBtn');
 
       try {
-        statusEl.textContent = '⏳ Loading face models...';
+        statusEl.textContent = '⏳ Loading models...';
         await faceHelper.loadModels();
 
         statusEl.textContent = '📷 Opening camera...';
         const stream = await navigator.mediaDevices.getUserMedia({
-          video: { facingMode: 'user', width: 640, height: 480 },
+          video: {
+            facingMode: 'user',
+            width: { ideal: 1280 },
+            height: { ideal: 960 },
+          },
         });
         video.srcObject = stream;
 
-        statusEl.textContent = '✅ Ready — Position your face in the circle';
+        statusEl.textContent = '✅ Ready';
         btn.disabled = false;
+
+        // Start auto-verify loop if enabled
+        startAutoLoop();
       } catch (e) {
         console.error(e);
-        statusEl.innerHTML = '<span style="color: var(--danger);">❌ Camera or face model unavailable</span>';
-        ui.showStatus('err', '📷', 'Camera Error', 'Please allow camera access and reload');
+        statusEl.innerHTML = '<span style="color: var(--danger);">❌ Camera unavailable</span>';
       }
+    }
+
+    function startAutoLoop() {
+      if (autoInterval) clearInterval(autoInterval);
+
+      autoInterval = setInterval(async () => {
+        const autoMode = document.getElementById('autoMode').checked;
+        if (!autoMode || busy) return;
+
+        // Don't verify more than once every 4 seconds
+        const now = Date.now();
+        if (now - lastVerifyTime < 4000) return;
+
+        // Quick check first — is there a face?
+        try {
+          const detection = await faceHelper.quickDetect(video);
+          if (detection) {
+            lastVerifyTime = now;
+            await verifyNow();
+          }
+        } catch (e) {}
+      }, 1500);
     }
 
     window.verifyNow = async function() {
@@ -105,12 +155,13 @@
       btn.disabled = true;
       btn.textContent = '⏳ Verifying...';
 
+      const startTime = Date.now();
+
       try {
         const descriptor = await faceHelper.captureDescriptor(video);
 
         if (!descriptor) {
-          ui.showStatus('err', '❌', 'Face Not Detected', 'Position your face in the circle and try again');
-          ui.beep(false);
+          document.getElementById('faceStatus').textContent = '❌ Face not detected';
           return;
         }
 
@@ -124,25 +175,28 @@
           }),
         });
         const data = await res.json();
+        const elapsed = Date.now() - startTime;
+
+        document.getElementById('timer').textContent = `⏱️ ${elapsed}ms`;
+        document.getElementById('faceStatus').textContent = `✅ Verified in ${elapsed}ms`;
 
         if (data.allowed) {
           const meal = { breakfast: 'Breakfast', lunch: 'Lunch', dinner: 'Dinner', 'off-hours': 'Meal' }[data.mealType] || 'Meal';
-          ui.showStatus('ok', '🍽️', 'Access Granted', `${meal} · Enjoy your meal`, data.student?.name || '');
+          ui.showStatus('ok', '🍽️', 'Access Granted', `${meal} · Enjoy`, data.student?.name || '');
           ui.beep(true);
-          ui.speak('Access granted. Enjoy your meal');
+          ui.speak('Access granted');
+
+          // Lock for 5 sec to prevent double scan
+          lastVerifyTime = Date.now() + 5000;
         } else if (data.reason === 'already_used') {
           ui.showStatus('warn', '⛔', 'Already Used', 'You already had this meal', data.student?.name || '');
           ui.beep(false);
-          ui.speak('You already had this meal');
-        } else if (data.reason === 'not_cafe_user') {
-          ui.showStatus('err', '🚫', 'No Cafeteria Access', 'Not registered for cafeteria', data.student?.name || '');
-          ui.beep(false);
+          ui.speak('Already used');
         } else if (data.reason === 'not_recognized') {
-          ui.showStatus('err', '❓', 'Face Not Recognized', 'Your face is not registered', '');
+          ui.showStatus('err', '❓', 'Not Recognized', 'Face not registered', '');
           ui.beep(false);
-          ui.speak('Face not recognized');
-        } else if (data.reason === 'not_approved') {
-          ui.showStatus('err', '⏳', 'Not Approved', 'Registration pending admin approval', data.student?.name || '');
+        } else if (data.reason === 'not_cafe_user') {
+          ui.showStatus('err', '🚫', 'No Cafeteria Access', 'Not registered', data.student?.name || '');
           ui.beep(false);
         } else {
           ui.showStatus('err', '🚫', 'Access Denied', data.message || '');
@@ -153,7 +207,7 @@
         ui.showStatus('err', '⚠️', 'Error', 'Try again');
       } finally {
         btn.disabled = false;
-        btn.textContent = '📷 Verify My Face';
+        btn.textContent = '📷 Verify Face';
         busy = false;
       }
     };
